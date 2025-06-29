@@ -4,17 +4,18 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { Button, Divider } from 'react-native-paper';
 import { tasksAPI } from '../services/api';
 import { showToast } from '../utils/toast';
+import ConfirmationDialog from '../components/ConfirmationDialog';
 
 const AppointmentDetailScreen = ({ navigation, route }) => {
   const { appointmentId } = route.params;
   const [appointment, setAppointment] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
 
   useEffect(() => {
     loadAppointment();
@@ -27,17 +28,22 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
       // API response: { success: true, data: { ... } }
       setAppointment(response.data.data);
     } catch (error) {
-      Alert.alert('Error', 'Failed to load appointment details');
+      showToast.error('Failed to load appointment details');
       navigation.goBack();
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
+    setShowDeleteConfirmation(true);
+  };
+
+  const confirmDelete = async () => {
     try {
       await tasksAPI.deleteTask(appointmentId);
-      // Use replace to force a fresh load of the Dashboard
+      showToast.success('Appointment deleted successfully');
+      // Determine which page to go to after delete (no global store needed)
       navigation.replace('Dashboard');
     } catch (error) {
       showToast.error(error.response?.data?.message || 'Failed to delete appointment');
@@ -123,6 +129,16 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
           </View>
         </View>
       </ScrollView>
+      <ConfirmationDialog
+        visible={showDeleteConfirmation}
+        title="Delete Appointment"
+        message="Are you sure you want to delete this appointment? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteConfirmation(false)}
+        confirmButtonStyle="destructive"
+      />
     </View>
   );
 };

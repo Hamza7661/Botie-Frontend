@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,7 @@ const LoginScreen = ({ navigation }) => {
   const [touched, setTouched] = useState({});
   
   const { login } = useAuth();
+  const passwordRef = useRef(null);
 
   const validateForm = () => {
     const newErrors = {};
@@ -123,6 +124,13 @@ const LoginScreen = ({ navigation }) => {
                   value={email}
                   onChangeText={(value) => handleFieldChange('email', value)}
                   onBlur={() => handleFieldBlur('email')}
+                  onSubmitEditing={() => {
+                    // Focus the password field when Enter is pressed on email
+                    if (passwordRef.current) {
+                      passwordRef.current.focus();
+                    }
+                  }}
+                  returnKeyType="next"
                   mode="outlined"
                   keyboardType="email-address"
                   autoCapitalize="none"
@@ -140,10 +148,13 @@ const LoginScreen = ({ navigation }) => {
 
               <View style={styles.inputContainer}>
                 <TextInput
+                  ref={passwordRef}
                   label="Password"
                   value={password}
                   onChangeText={(value) => handleFieldChange('password', value)}
                   onBlur={() => handleFieldBlur('password')}
+                  onSubmitEditing={handleLogin}
+                  returnKeyType="done"
                   mode="outlined"
                   secureTextEntry={!showPassword}
                   right={

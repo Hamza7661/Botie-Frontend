@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authAPI } from '../services/api';
+import { authEvents } from '../services/api';
+import { showToast } from '../utils/toast';
 
 const AuthContext = createContext();
 
@@ -19,6 +21,17 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     loadStoredAuth();
+    
+    // Subscribe to auth events
+    const unsubscribe = authEvents.subscribe((event) => {
+      if (event === 'unauthorized') {
+        forceLogout();
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const loadStoredAuth = async () => {
@@ -36,6 +49,17 @@ export const AuthProvider = ({ children }) => {
       console.error('Error loading stored auth:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const forceLogout = async () => {
+    try {
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('user');
+      setToken(null);
+      setUser(null);
+    } catch (error) {
+      console.error('Error during force logout:', error);
     }
   };
 
@@ -96,6 +120,7 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
+    forceLogout,
     updateUser,
   };
 

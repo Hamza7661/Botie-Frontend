@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,16 @@ import { validatePhone } from '../utils/validation';
 const RegisterScreen = ({ navigation }) => {
   const screenWidth = Dimensions.get('window').width;
   const isLargeScreen = screenWidth > 768; // Tablet/desktop breakpoint
+
+  // Refs for field navigation
+  const lastnameRef = useRef(null);
+  const emailRef = useRef(null);
+  const phoneRef = useRef(null);
+  const addressRef = useRef(null);
+  const professionRef = useRef(null);
+  const professionDescRef = useRef(null);
+  const passwordRef = useRef(null);
+  const confirmPasswordRef = useRef(null);
 
   const [formData, setFormData] = useState({
     firstname: '',
@@ -160,28 +170,64 @@ const RegisterScreen = ({ navigation }) => {
     },
   });
 
-  const renderInput = (field, label, options = {}) => (
-    <View style={options.inputContainerStyle || styles.inputContainer}>
-      <TextInput
-        label={label}
-        value={formData[field]}
-        onChangeText={(value) => updateFormData(field, value)}
-        onBlur={() => handleFieldBlur(field)}
-        mode="outlined"
-        style={[
-          styles.input,
-          options.style,
-          errors[field] && touched[field] && styles.inputError
-        ]}
-        theme={getInputTheme(field)}
-        error={!!(errors[field] && touched[field])}
-        {...options}
-      />
-      {errors[field] && touched[field] && (
-        <Text style={styles.errorText}>{errors[field]}</Text>
-      )}
-    </View>
-  );
+  const renderInput = (field, label, options = {}) => {
+    // Determine the next field to focus
+    const getNextField = () => {
+      const fieldOrder = [
+        'firstname', 'lastname', 'email', 'phoneNumber', 
+        'address', 'profession', 'professionDescription', 
+        'password', 'confirmPassword'
+      ];
+      const currentIndex = fieldOrder.indexOf(field);
+      const nextField = fieldOrder[currentIndex + 1];
+      
+      if (nextField === 'lastname') return lastnameRef;
+      if (nextField === 'email') return emailRef;
+      if (nextField === 'phoneNumber') return phoneRef;
+      if (nextField === 'address') return addressRef;
+      if (nextField === 'profession') return professionRef;
+      if (nextField === 'professionDescription') return professionDescRef;
+      if (nextField === 'password') return passwordRef;
+      if (nextField === 'confirmPassword') return confirmPasswordRef;
+      
+      return null; // Last field
+    };
+
+    const nextFieldRef = getNextField();
+    const isLastField = field === 'confirmPassword';
+
+    return (
+      <View style={options.inputContainerStyle || styles.inputContainer}>
+        <TextInput
+          ref={options.ref}
+          label={label}
+          value={formData[field]}
+          onChangeText={(value) => updateFormData(field, value)}
+          onBlur={() => handleFieldBlur(field)}
+          onSubmitEditing={() => {
+            if (isLastField) {
+              handleRegister();
+            } else if (nextFieldRef?.current) {
+              nextFieldRef.current.focus();
+            }
+          }}
+          returnKeyType={isLastField ? 'done' : 'next'}
+          mode="outlined"
+          style={[
+            styles.input,
+            options.style,
+            errors[field] && touched[field] && styles.inputError
+          ]}
+          theme={getInputTheme(field)}
+          error={!!(errors[field] && touched[field])}
+          {...options}
+        />
+        {errors[field] && touched[field] && (
+          <Text style={styles.errorText}>{errors[field]}</Text>
+        )}
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -218,39 +264,47 @@ const RegisterScreen = ({ navigation }) => {
                   })}
                   {renderInput('lastname', 'Last Name', { 
                     style: styles.halfInput, 
-                    inputContainerStyle: styles.inputContainerRow 
+                    inputContainerStyle: styles.inputContainerRow,
+                    ref: lastnameRef
                   })}
                 </View>
               ) : (
                 <>
                   {renderInput('firstname', 'First Name')}
-                  {renderInput('lastname', 'Last Name')}
+                  {renderInput('lastname', 'Last Name', { ref: lastnameRef })}
                 </>
               )}
 
               {renderInput('email', 'Email', {
                 keyboardType: 'email-address',
-                autoCapitalize: 'none'
+                autoCapitalize: 'none',
+                ref: emailRef
               })}
 
               {renderInput('phoneNumber', 'Phone Number', {
-                keyboardType: 'phone-pad'
+                keyboardType: 'phone-pad',
+                ref: phoneRef
               })}
 
               {renderInput('address', 'Address', {
                 multiline: true,
-                numberOfLines: 4
+                numberOfLines: 4,
+                ref: addressRef
               })}
 
-              {renderInput('profession', 'Profession')}
+              {renderInput('profession', 'Profession', {
+                ref: professionRef
+              })}
 
               {renderInput('professionDescription', 'Profession Description', {
                 multiline: true,
-                numberOfLines: 4
+                numberOfLines: 4,
+                ref: professionDescRef
               })}
 
               {renderInput('password', 'Password', {
                 secureTextEntry: !showPassword,
+                ref: passwordRef,
                 right: (
                   <TextInput.Icon
                     icon={showPassword ? 'eye-off' : 'eye'}
@@ -261,6 +315,7 @@ const RegisterScreen = ({ navigation }) => {
 
               {renderInput('confirmPassword', 'Confirm Password', {
                 secureTextEntry: !showConfirmPassword,
+                ref: confirmPasswordRef,
                 right: (
                   <TextInput.Icon
                     icon={showConfirmPassword ? 'eye-off' : 'eye'}

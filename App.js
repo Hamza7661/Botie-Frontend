@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Provider as PaperProvider, DefaultTheme } from 'react-native-paper';
 import { StatusBar } from 'expo-status-bar';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 
@@ -23,6 +24,14 @@ import AddEditAppointmentScreen from './src/screens/AddEditAppointmentScreen';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 
 const Stack = createStackNavigator();
+
+// Loading Screen Component
+const LoadingScreen = () => (
+  <View style={styles.loadingContainer}>
+    <ActivityIndicator size="large" color="#007bff" />
+    <Text style={styles.loadingText}>Loading...</Text>
+  </View>
+);
 
 // Updated theme with white as primary and blue as secondary
 const theme = {
@@ -45,7 +54,7 @@ function AppNavigator() {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return null; // You can add a loading screen here
+    return <LoadingScreen />;
   }
 
   return (
@@ -114,6 +123,20 @@ function AppNavigator() {
     </NavigationContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666666',
+  },
+});
 
 export default function App() {
   return (

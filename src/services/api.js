@@ -12,6 +12,20 @@ const api = axios.create({
   },
 });
 
+// Global event emitter for auth events
+const authEvents = {
+  listeners: new Set(),
+  emit(event) {
+    this.listeners.forEach(listener => listener(event));
+  },
+  subscribe(listener) {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+};
+
+export { authEvents };
+
 // Request interceptor to add auth token
 api.interceptors.request.use(
   async (config) => {
@@ -31,8 +45,12 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
+      // Clear stored auth data
       await AsyncStorage.removeItem('token');
       await AsyncStorage.removeItem('user');
+      
+      // Emit auth event to notify AuthContext
+      authEvents.emit('unauthorized');
     }
     return Promise.reject(error);
   }
@@ -66,6 +84,14 @@ export const tasksAPI = {
   createTask: (taskData) => api.post('/tasks', taskData),
   updateTask: (taskId, taskData) => api.put(`/tasks/${taskId}`, taskData),
   deleteTask: (taskId) => api.delete(`/tasks/${taskId}`),
+};
+
+// Customer API
+export const customerAPI = {
+  getCustomers: () => api.get('/customers'),
+  searchCustomers: (searchQuery) => api.get('/customers', {
+    params: { search: searchQuery }
+  }),
 };
 
 export default api; 

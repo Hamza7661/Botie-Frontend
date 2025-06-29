@@ -7,9 +7,11 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
 } from 'react-native';
-import { TextInput, Button, Checkbox } from 'react-native-paper';
-import { tasksAPI } from '../services/api';
+import { TextInput, Button, Checkbox, Searchbar } from 'react-native-paper';
+import RNPickerSelect from 'react-native-picker-select';
+import { tasksAPI, customerAPI } from '../services/api';
 import Preloader from '../components/Preloader';
 import { showToast } from '../utils/toast';
 
@@ -27,6 +29,13 @@ const AddEditAppointmentScreen = ({ navigation, route }) => {
       phoneNumber: '',
     },
   });
+
+  // Customer search state
+  const [customers, setCustomers] = useState([]);
+  const [customerSearchQuery, setCustomerSearchQuery] = useState('');
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [showCustomerSearch, setShowCustomerSearch] = useState(false);
+  const [loadingCustomers, setLoadingCustomers] = useState(false);
 
   // Error states
   const [errors, setErrors] = useState({});
@@ -61,6 +70,70 @@ const AddEditAppointmentScreen = ({ navigation, route }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const searchCustomers = async (query) => {
+    try {
+      setLoadingCustomers(true);
+      const response = await customerAPI.searchCustomers(query);
+      setCustomers(response.data.data.customers || []);
+    } catch (error) {
+      console.error('Error searching customers:', error);
+      setCustomers([]);
+    } finally {
+      setLoadingCustomers(false);
+    }
+  };
+
+  const handleCustomerSearch = (query) => {
+    setCustomerSearchQuery(query);
+    if (query.trim().length >= 2) {
+      searchCustomers(query);
+      setShowCustomerSearch(true);
+    } else {
+      setCustomers([]);
+      setShowCustomerSearch(false);
+    }
+  };
+
+  const handleCustomerSelect = (customer) => {
+    setSelectedCustomer(customer);
+    setCustomerSearchQuery(customer.name);
+    setShowCustomerSearch(false);
+    
+    // Auto-populate customer fields
+    setFormData(prev => ({
+      ...prev,
+      customer: {
+        name: customer.name || '',
+        address: customer.address || '',
+        phoneNumber: customer.phoneNumber || '',
+      },
+    }));
+    
+    // Clear customer-related errors
+    setErrors(prev => ({
+      ...prev,
+      customerName: undefined,
+      customerPhone: undefined,
+    }));
+  };
+
+  const clearCustomerSelection = () => {
+    setSelectedCustomer(null);
+    setCustomerSearchQuery('');
+    setCustomers([]);
+    setShowCustomerSearch(false);
+    
+    // Clear customer fields
+    setFormData(prev => ({
+      ...prev,
+      customer: {
+        name: '',
+        address: '',
+        phoneNumber: '',
+      },
+    }));
   };
 
   const validateForm = () => {
@@ -232,6 +305,7 @@ const AddEditAppointmentScreen = ({ navigation, route }) => {
           ]}
           theme={getInputTheme(errorField)}
           error={!!(errors[errorField] && touched[errorField])}
+          disabled={options.disabled}
           {...options}
         />
         {errors[errorField] && touched[errorField] && errors[errorField] !== '' && (
@@ -268,16 +342,79 @@ const AddEditAppointmentScreen = ({ navigation, route }) => {
 
               <Text style={styles.sectionTitle}>Customer Information</Text>
 
-              {renderCustomerInput('name', 'Customer Name')}
+              {/* Customer Search */}
+              <View style={styles.customerSearchContainer}>
+                <Text style={styles.searchLabel}>Search Existing Customer</Text>
+                <Searchbar
+                  placeholder="Search customers by name or phone..."
+                  onChangeText={handleCustomerSearch}
+                  value={customerSearchQuery}
+                  style={styles.customerSearchBar}
+                  iconColor="#007bff"
+                  onClearIconPress={clearCustomerSelection}
+                />
+                
+                {showCustomerSearch && (
+                  <View style={styles.customerDropdown}>
+                    {loadingCustomers ? (
+                      <View style={styles.dropdownItem}>
+                        <Text style={styles.dropdownText}>Loading...</Text>
+                      </View>
+                    ) : customers.length > 0 ? (
+                      customers.map((customer) => (
+                        <TouchableOpacity
+                          key={customer._id}
+                          style={styles.dropdownItem}
+                          onPress={() => handleCustomerSelect(customer)}
+                        >
+                          <Text style={styles.dropdownText}>
+                            {customer.name} — {customer.phoneNumber}
+                          </Text>
+                        </TouchableOpacity>
+                      ))
+                    ) : customerSearchQuery.trim().length >= 2 ? (
+                      <View style={styles.dropdownItem}>
+                        <Text style={styles.dropdownText}>No customers found</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                )}
+                
+                {selectedCustomer && (
+                  <View style={styles.selectedCustomerInfo}>
+                    <Text style={styles.selectedCustomerText}>
+                      Selected: {selectedCustomer.name}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={clearCustomerSelection}
+                      style={styles.clearSelectionButton}
+                    >
+                      <Text style={styles.clearSelectionText}>Clear Selection</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+
+              {renderCustomerInput('name', 'Customer Name', {
+                disabled: !!selectedCustomer
+              })}
 
               {renderCustomerInput('phoneNumber', 'Customer Phone Number', {
-                keyboardType: 'phone-pad'
+                keyboardType: 'phone-pad',
+                disabled: !!selectedCustomer
               })}
 
               {renderCustomerInput('address', 'Customer Address', {
                 multiline: true,
-                numberOfLines: 3
+                numberOfLines: 3,
+                disabled: !!selectedCustomer
               })}
+
+              {selectedCustomer && (
+                <Text style={styles.autoFillNote}>
+                  Customer fields are auto-filled from selected customer. Clear selection to edit manually.
+                </Text>
+              )}
 
               {isEditing && (
                 <View style={styles.checkboxContainer}>
@@ -412,6 +549,69 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333333',
     marginLeft: 8,
+  },
+  customerSearchContainer: {
+    marginBottom: 20,
+  },
+  searchLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333333',
+    marginBottom: 8,
+  },
+  customerSearchBar: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#007bff',
+    borderRadius: 8,
+  },
+  customerDropdown: {
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#007bff',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    width: '100%',
+    maxHeight: 200,
+    marginTop: 4,
+  },
+  dropdownItem: {
+    padding: 12,
+  },
+  dropdownText: {
+    fontSize: 16,
+    color: '#333333',
+  },
+  dropdownSubtext: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  selectedCustomerInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  selectedCustomerText: {
+    fontSize: 16,
+    color: '#333333',
+    marginRight: 8,
+  },
+  clearSelectionButton: {
+    padding: 8,
+  },
+  clearSelectionText: {
+    fontSize: 16,
+    color: '#007bff',
+  },
+  autoFillNote: {
+    fontSize: 12,
+    color: '#666666',
+    marginTop: 8,
+    marginBottom: 20,
   },
 });
 

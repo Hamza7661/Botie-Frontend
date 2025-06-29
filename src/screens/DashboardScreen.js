@@ -5,7 +5,6 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Alert,
   RefreshControl,
   ActivityIndicator,
   Platform,
@@ -14,7 +13,12 @@ import { Card, Button, Searchbar, FAB, IconButton } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import { tasksAPI } from '../services/api';
 import { useTheme } from 'react-native-paper';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useRoute } from '@react-navigation/native';
+import { usePagination } from '../hooks/usePagination';
+import { showToast } from '../utils/toast';
+
+// Module-level variable to store dashboard page
+let savedDashboardPage = null;
 
 // Memoized Searchbar component
 const AppointmentsSearchbar = React.memo(({ value, onChangeText, onSubmitEditing, theme, style }) => (
@@ -30,7 +34,7 @@ const AppointmentsSearchbar = React.memo(({ value, onChangeText, onSubmitEditing
 ));
 
 // Memoized Header component
-const HeaderComponent = React.memo(({ user, handleLogout, searchQuery, setSearchQuery, handleSearch, appointments, totalAppointments, theme, styles }) => (
+const HeaderComponent = React.memo(({ user, handleLogout, handleProfile, searchQuery, setSearchQuery, handleSearch, appointments, totalAppointments, theme, styles }) => (
   <View style={styles.headerCard}>
     <View style={styles.headerContent}>
       <View style={styles.userInfo}>
@@ -41,9 +45,14 @@ const HeaderComponent = React.memo(({ user, handleLogout, searchQuery, setSearch
           Manage your appointments and stay organized
         </Text>
       </View>
-      <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-        <Text style={styles.logoutText}>Logout</Text>
-      </TouchableOpacity>
+      <View style={styles.headerActions}>
+        <TouchableOpacity onPress={handleProfile} style={styles.profileButton}>
+          <Text style={styles.profileText}>Profile</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
+      </View>
     </View>
     {/* Twilio Phone Number Display */}
     <View style={styles.phoneSection}>
@@ -75,126 +84,83 @@ const HeaderComponent = React.memo(({ user, handleLogout, searchQuery, setSearch
 const DashboardScreen = ({ navigation }) => {
   const { user, logout } = useAuth();
   const theme = useTheme();
-  const [appointments, setAppointments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [totalAppointments, setTotalAppointments] = useState(0);
   const debounceTimeout = useRef();
-  const isInitialLoad = useRef(true);
-  const lastKnownPage = useRef(1);
-  const isNavigating = useRef(false);
-  const navigationTimeout = useRef();
+  const route = useRoute();
+  const lastSearchQuery = useRef(searchQuery);
 
-  const limit = 2;
+  const limit = 2; // Show 2 items per page
 
-  const loadAppointments = useCallback(async (page = 1, isRefresh = false) => {
-    // Prevent multiple simultaneous calls
-    if (loading && !isRefresh) {
-      return;
-    }
-    
-    try {
-      if (page === 1) {
-        setLoading(true);
-      } else {
-        setLoadingMore(true);
-      }
-
-      const response = await tasksAPI.getTasks({
-        page,
-        limit,
-        search: searchQuery.trim(),
-        sortBy: 'createdAt',
-        sortOrder: 'desc',
-      });
-
-      const { tasks, pagination } = response.data.data;
-      const total = pagination.totalPages;
-      const totalCount = pagination.totalTasks || 0;
-
-      // Always set appointments and use the page we requested
-      setAppointments(tasks);
-      setCurrentPage(page);
-      lastKnownPage.current = page;
-      setTotalPages(total);
-      setHasMore(page < total);
-      setTotalAppointments(totalCount);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to load appointments');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-      setLoadingMore(false);
-    }
-  }, [searchQuery, loading, currentPage]);
-
-  useEffect(() => {
-    loadAppointments();
-    isInitialLoad.current = false;
-    isNavigating.current = false;
-    
-    // Cleanup function to clear timeouts
-    return () => {
-      if (navigationTimeout.current) {
-        clearTimeout(navigationTimeout.current);
-      }
-      if (debounceTimeout.current) {
-        clearTimeout(debounceTimeout.current);
-      }
-    };
-  }, []);
+  // Use the pagination hook
+  const {
+    data: appointments,
+    loading,
+    refreshing,
+    currentPage,
+    totalPages,
+    totalItems: totalAppointments,
+    hasMore,
+    error,
+    loadData,
+    refresh,
+    loadMore,
+    goToPage,
+    reset,
+  } = usePagination(tasksAPI.getTasks, 1, limit);
 
   // Debounced search effect
   useEffect(() => {
+    if (lastSearchQuery.current === searchQuery) {
+      return;
+    }
+    lastSearchQuery.current = searchQuery;
     if (debounceTimeout.current) {
       clearTimeout(debounceTimeout.current);
     }
     debounceTimeout.current = setTimeout(() => {
-      loadAppointments(1, true);
+      refresh(searchQuery);
     }, 400);
     return () => clearTimeout(debounceTimeout.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery]);
+  }, [searchQuery, refresh]);
 
-  // Reset navigation flag when screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      // Set a longer timeout to prevent onEndReached from triggering immediately
-      if (navigationTimeout.current) {
-        clearTimeout(navigationTimeout.current);
-      }
-      navigationTimeout.current = setTimeout(() => {
-        isNavigating.current = false;
-      }, 2000); // 2 seconds delay
-    }, [currentPage])
-  );
+  // Handle errors
+  useEffect(() => {
+    if (error) {
+      showToast.error('Failed to load appointments');
+    }
+  }, [error]);
 
   const handleRefresh = () => {
-    setRefreshing(true);
-    setCurrentPage(1);
-    loadAppointments(1, true);
+    refresh(searchQuery);
   };
 
   const handleLoadMore = () => {
-    if (hasMore && !loadingMore && !loading && currentPage < totalPages && !isNavigating.current) {
-      const nextPage = currentPage + 1;
-      loadAppointments(nextPage);
-    }
+    loadMore(searchQuery);
   };
 
   const handleSearch = () => {
-    setCurrentPage(1);
-    loadAppointments(1, true);
+    refresh(searchQuery);
   };
 
   const handleLogout = () => {
     logout();
   };
+
+  const handleProfile = () => {
+    navigation.navigate('Profile');
+  };
+
+  // Go to the correct page if coming from a delete, on focus
+  useFocusEffect(
+    React.useCallback(() => {
+      if (savedDashboardPage) {
+        goToPage(savedDashboardPage, searchQuery);
+        savedDashboardPage = null;
+      } else {
+        goToPage(1, searchQuery);
+      }
+    }, [searchQuery])
+  );
 
   const renderAppointmentCard = ({ item }) => (
     <Card style={styles.appointmentCard} mode="outlined">
@@ -209,11 +175,7 @@ const DashboardScreen = ({ navigation }) => {
               size={20}
               iconColor="#007bff"
               onPress={() => {
-                isNavigating.current = true;
-                // Clear any existing timeout
-                if (navigationTimeout.current) {
-                  clearTimeout(navigationTimeout.current);
-                }
+                savedDashboardPage = currentPage;
                 navigation.navigate('AppointmentDetail', { appointmentId: item._id });
               }}
             />
@@ -222,11 +184,6 @@ const DashboardScreen = ({ navigation }) => {
               size={20}
               iconColor="#007bff"
               onPress={() => {
-                isNavigating.current = true;
-                // Clear any existing timeout
-                if (navigationTimeout.current) {
-                  clearTimeout(navigationTimeout.current);
-                }
                 navigation.navigate('AddEditAppointment', { 
                   appointmentId: item._id,
                   isEditing: true 
@@ -272,7 +229,7 @@ const DashboardScreen = ({ navigation }) => {
   );
 
   const renderFooter = () => {
-    if (!loadingMore) return null;
+    if (!loading) return null;
     return (
       <View style={styles.loadingMore}>
         <ActivityIndicator size="small" color="#007bff" />
@@ -299,6 +256,13 @@ const DashboardScreen = ({ navigation }) => {
     </Card>
   );
 
+  // Reset pagination state on unmount
+  useEffect(() => {
+    return () => {
+      reset();
+    };
+  }, [reset]);
+
   return (
     <View style={styles.container}>
       <View style={styles.mainContainer}>
@@ -310,6 +274,7 @@ const DashboardScreen = ({ navigation }) => {
             <HeaderComponent
               user={user}
               handleLogout={handleLogout}
+              handleProfile={handleProfile}
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
               handleSearch={handleSearch}
@@ -320,8 +285,6 @@ const DashboardScreen = ({ navigation }) => {
             />
           }
           ListFooterComponent={renderFooter}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.5}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
           }
@@ -330,40 +293,41 @@ const DashboardScreen = ({ navigation }) => {
           ListEmptyComponent={renderEmptyState}
         />
 
-        {/* Pagination Controls */}
-        <View style={styles.paginationContainer}>
-          <IconButton
-            icon="chevron-left"
-            size={28}
-            onPress={() => {
-              if (currentPage > 1) loadAppointments(currentPage - 1);
-            }}
+        {/* Pagination Controls - Always show, even if only 1 page */}
+        <View style={styles.paginationCard}>
+          <View style={styles.paginationBar}>
+            <TouchableOpacity
+              onPress={() => currentPage > 1 && goToPage(currentPage - 1, searchQuery)}
             disabled={currentPage <= 1}
-            style={styles.paginationIcon}
-          />
-          <View style={styles.pageNumbersContainer}>
+              style={[styles.arrowButton, currentPage <= 1 && styles.arrowButtonDisabled]}
+            >
+              <Text style={[styles.arrowText, currentPage <= 1 && styles.arrowTextDisabled]}>&lt;</Text>
+            </TouchableOpacity>
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-              <Text
+              <TouchableOpacity
                 key={page}
                 style={[
-                  styles.pageNumber,
-                  page === currentPage && styles.currentPageNumber
+                  styles.pagePill,
+                  page === currentPage ? styles.pagePillActive : styles.pagePillInactive
                 ]}
-                onPress={() => page !== currentPage && loadAppointments(page)}
+                onPress={() => page !== currentPage && goToPage(page, searchQuery)}
               >
+                <Text style={[
+                  styles.pagePillText,
+                  page === currentPage ? styles.pagePillTextActive : styles.pagePillTextInactive
+                ]}>
                 {page}
               </Text>
+              </TouchableOpacity>
             ))}
+            <TouchableOpacity
+              onPress={() => currentPage < totalPages && goToPage(currentPage + 1, searchQuery)}
+              disabled={currentPage >= totalPages}
+              style={[styles.arrowButton, currentPage >= totalPages && styles.arrowButtonDisabled]}
+            >
+              <Text style={[styles.arrowText, currentPage >= totalPages && styles.arrowTextDisabled]}>&gt;</Text>
+            </TouchableOpacity>
           </View>
-          <IconButton
-            icon="chevron-right"
-            size={28}
-            onPress={() => {
-              if (currentPage < totalPages) loadAppointments(currentPage + 1);
-            }}
-            disabled={currentPage >= totalPages}
-            style={styles.paginationIcon}
-          />
         </View>
 
         {/* FAB for adding new appointment */}
@@ -371,11 +335,6 @@ const DashboardScreen = ({ navigation }) => {
           icon="plus"
           style={styles.fab}
           onPress={() => {
-            isNavigating.current = true;
-            // Clear any existing timeout
-            if (navigationTimeout.current) {
-              clearTimeout(navigationTimeout.current);
-            }
             navigation.navigate('AddEditAppointment', { isEditing: false });
           }}
           color="#ffffff"
@@ -569,50 +528,67 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     paddingBottom: 0,
   },
-  paginationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#ffffff',
+  paginationCard: {
     marginHorizontal: 16,
+    marginBottom: 25,
+    marginTop: 8,
     borderRadius: 12,
     elevation: 4,
-    marginBottom: 15,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    borderTopWidth: 1,
-    borderColor: '#eee',
+    backgroundColor: '#ffffff',
   },
-  paginationIcon: {
-    marginHorizontal: 8,
-  },
-  pageNumbersContainer: {
+  paginationBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: 8,
+    justifyContent: 'center',
+    padding: 10,
   },
-  pageNumber: {
+  arrowButton: {
+    padding: 8,
+    borderRadius: 4,
+    backgroundColor: 'transparent',
+  },
+  arrowButtonDisabled: {
+    backgroundColor: 'transparent',
+  },
+  arrowText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#000000',
+  },
+  arrowTextDisabled: {
+    color: '#bbb',
+  },
+  pagePill: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    fontSize: 16,
-    color: '#007bff',
     borderRadius: 4,
-    marginHorizontal: 2,
+    marginHorizontal: 4,
     backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#000',
-    overflow: 'hidden',
-    textAlign: 'center',
-    minWidth: 32,
-    cursor: 'pointer',
-  },
-  currentPageNumber: {
-    backgroundColor: '#007bff',
-    color: '#fff',
     borderColor: '#007bff',
+  },
+  pagePillActive: {
+    backgroundColor: '#007bff',
+    borderColor: '#007bff',
+  },
+  pagePillInactive: {
+    backgroundColor: '#fff',
+    borderColor: '#007bff',
+  },
+  pagePillText: {
+    fontSize: 16,
+    color: '#007bff',
+  },
+  pagePillTextActive: {
+    color: '#fff',
     fontWeight: 'bold',
+  },
+  pagePillTextInactive: {
+    color: '#007bff',
   },
   appointmentFooter: {
     flexDirection: 'row',
@@ -681,6 +657,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#007bff',
     fontWeight: 'bold',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  profileButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: '#007bff',
+    borderWidth: 1,
+    borderColor: '#007bff',
+  },
+  profileText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 
