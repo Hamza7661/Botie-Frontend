@@ -1,0 +1,13 @@
+/* Global styles for web builds */
+body {
+  overflow-y: auto;
+  background: #fff;
+}
+
+/* Force toast message font size and color for react-native-toast-message on web */
+[data-testid="toastText2"] {
+  font-size: 14px !important;
+}
+[data-testid="toastText1"] {
+  font-size: 14px !important;
+}

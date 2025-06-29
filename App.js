@@ -1,0 +1,128 @@
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import { Provider as PaperProvider, DefaultTheme } from 'react-native-paper';
+import { StatusBar } from 'expo-status-bar';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Toast from 'react-native-toast-message';
+
+// Import global styles for web
+import './src/styles/global.css';
+
+// Import screens
+import LoginScreen from './src/screens/LoginScreen';
+import RegisterScreen from './src/screens/RegisterScreen';
+import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
+import ResetPasswordScreen from './src/screens/ResetPasswordScreen';
+import DashboardScreen from './src/screens/DashboardScreen';
+import ProfileScreen from './src/screens/ProfileScreen';
+import AppointmentDetailScreen from './src/screens/AppointmentDetailScreen';
+import AddEditAppointmentScreen from './src/screens/AddEditAppointmentScreen';
+
+// Import context
+import { AuthProvider, useAuth } from './src/context/AuthContext';
+
+const Stack = createStackNavigator();
+
+// Updated theme with white as primary and blue as secondary
+const theme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: '#007bff',
+    background: '#ffffff',
+    surface: '#ffffff',
+    text: '#333333',
+    placeholder: '#666666',
+    border: '#e0e0e0',
+    accent: '#007bff',
+    card: '#ffffff',
+    level3: '#f4f4f4',
+  },
+};
+
+function AppNavigator() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return null; // You can add a loading screen here
+  }
+
+  return (
+    <NavigationContainer>
+      <Stack.Navigator
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: theme.colors.primary,
+          },
+          headerTintColor: '#ffffff',
+          headerTitleStyle: {
+            fontWeight: 'bold',
+          },
+        }}
+      >
+        {!isAuthenticated ? (
+          // Auth screens
+          <>
+            <Stack.Screen 
+              name="Login" 
+              component={LoginScreen} 
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="Register" 
+              component={RegisterScreen} 
+              options={{ title: 'Create Account' }}
+            />
+            <Stack.Screen 
+              name="ForgotPassword" 
+              component={ForgotPasswordScreen} 
+              options={{ title: 'Forgot Password' }}
+            />
+            <Stack.Screen 
+              name="ResetPassword" 
+              component={ResetPasswordScreen} 
+              options={{ title: 'Reset Password' }}
+            />
+          </>
+        ) : (
+          // Main app screens
+          <>
+            <Stack.Screen 
+              name="Dashboard" 
+              component={DashboardScreen} 
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="Profile" 
+              component={ProfileScreen} 
+              options={{ title: 'Profile' }}
+            />
+            <Stack.Screen 
+              name="AppointmentDetail" 
+              component={AppointmentDetailScreen} 
+              options={{ title: 'Appointment Details' }}
+            />
+            <Stack.Screen 
+              name="AddEditAppointment" 
+              component={AddEditAppointmentScreen} 
+              options={{ title: 'Add Appointment' }}
+            />
+          </>
+        )}
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
+
+export default function App() {
+  return (
+    <PaperProvider theme={theme}>
+      <AuthProvider>
+        <AppNavigator />
+        <StatusBar style="dark" />
+        <Toast />
+      </AuthProvider>
+    </PaperProvider>
+  );
+} 

@@ -1,0 +1,496 @@
+{
+	"info": {
+		"_postman_id": "b2a6eb8c-8598-4b91-8159-afd10f4e6d53",
+		"name": "Botie Api",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "18755808"
+	},
+	"item": [
+		{
+			"name": "Register Customer",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"firstname\": \"Hamza\",\r\n  \"lastname\": \"Iftikhar\",\r\n  \"email\": \"iftikharhamza158@gmail.com\",\r\n  \"phoneNumber\": \"1234567890\",\r\n  \"password\": \"password123\",\r\n  \"profession\": \"Software Engineer\",\r\n  \"professionDescription\": \"I build web applications.\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5000/api/auth/register",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"auth",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Login",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer YOUR_TOKEN_HERE"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"email\": \"iftikharhamza158@gmail.com\",\n  \"password\": \"password123\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5000/api/auth/login",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"auth",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Edit User",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NTk1NTMwYjc0OWI2NWU5MTA0YTJjZCIsImlhdCI6MTc1MDY4NTE5MCwiZXhwIjoxNzUwNzcxNTkwfQ.LbgtcnUoccG5cowNslXPkEFS_Nv_r80hf6UXD-RF_rE",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"firstname\": \"Mark\",\n  \"lastname\": \"Anthony\",\n  \"phoneNumber\": \"0987654321\",\n  \"email\": \"iftikharhamza158@gmail.com\",\n  \"profession\": \"Software Engnr\",\n  \"professionDescription\": \"I design and build amazing web experiences.\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5000/api/users/68595530b749b65e9104a2cd",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"users",
+						"68595530b749b65e9104a2cd"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get User By Id",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NWE2ZjIyM2I0OGZjMWJmNjgxZGU0MiIsImlhdCI6MTc1MDc1NzQxMSwiZXhwIjoxNzUwODQzODExfQ.Ak-4aYpVZxDQQQ7tCxz7IFH1eYzxCxt3GtaE4ctNcsU",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5000/api/users/685a6f223b48fc1bf681de42",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"users",
+						"685a6f223b48fc1bf681de42"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete User",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NWE2ZjIyM2I0OGZjMWJmNjgxZGU0MiIsImlhdCI6MTc1MDc1NzQxMSwiZXhwIjoxNzUwODQzODExfQ.Ak-4aYpVZxDQQQ7tCxz7IFH1eYzxCxt3GtaE4ctNcsU",
+							"type": "string"
+						}
+					]
+				},
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5000/api/users/685a6f223b48fc1bf681de42",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"users",
+						"685a6f223b48fc1bf681de42"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Change Password",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NWE2ZjIyM2I0OGZjMWJmNjgxZGU0MiIsImlhdCI6MTc1MDc1NzMzMSwiZXhwIjoxNzUwODQzNzMxfQ.VBfhYIu6EAUcVYrJh58shSnkAw56GQ_rFgGHQbgL6NI",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"currentPassword\": \"password123\",\n  \"newPassword\": \"password126\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5000/api/auth/changepassword",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"auth",
+						"changepassword"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Forgot Password",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"email\": \"iftikharhamza158@gmail.com\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5000/api/auth/forgotpassword",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"auth",
+						"forgotpassword"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Reset Password",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"newPassword\": \"password123\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5000/api/auth/resetpassword/fe1fafbb6c638b92bbe102958685c15e19bf6ee4",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"auth",
+						"resetpassword",
+						"fe1fafbb6c638b92bbe102958685c15e19bf6ee4"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get All Tasks Paginated With Search,Sort And SortOrder (if user didnt searched anything then",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NWE3MGFiYjE3ZmIxNWU3NWMzZTAyNCIsImlhdCI6MTc1MDc2NzcxMCwiZXhwIjoxNzUwODU0MTEwfQ.3-Rsn4qtOs7mddVYczoVjVSqCq6W_xzdva_rUHhH77Y",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5000/api/tasks?page=1&limit=5&search=&sortBy=createdAt&sortOrder=desc",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"tasks"
+					],
+					"query": [
+						{
+							"key": "page",
+							"value": "1"
+						},
+						{
+							"key": "limit",
+							"value": "5"
+						},
+						{
+							"key": "search",
+							"value": ""
+						},
+						{
+							"key": "sortBy",
+							"value": "createdAt"
+						},
+						{
+							"key": "sortOrder",
+							"value": "desc"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Task",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NWE3MGFiYjE3ZmIxNWU3NWMzZTAyNCIsImlhdCI6MTc1MDc2NzM5OCwiZXhwIjoxNzUwODUzNzk4fQ.VFIlAEaexIlwUsohbSBp1KiTt__WMi8I1kI664i2mWY",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"heading\": \"Website Development\",\n    \"summary\": \"Create a modern website\",\n    \"description\": \"Build a responsive website with React and Node.js\",\n    \"customer\": {\n        \"name\": \"John Doe\",\n        \"address\": \"123 Main St, City, State\",\n        \"phoneNumber\": \"+1234567890\"\n    }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5000/api/tasks",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"tasks"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GetTaskById",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NWE3MGFiYjE3ZmIxNWU3NWMzZTAyNCIsImlhdCI6MTc1MDc3NDM2MSwiZXhwIjoxNzUwODYwNzYxfQ.7VXxtuwGBsuragWQLm1TEhJaWE_trATRjbQVdnSaFhE",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5000/api/tasks/685a9746225f5447353d6367",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"tasks",
+						"685a9746225f5447353d6367"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Edit Task",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NWE3MGFiYjE3ZmIxNWU3NWMzZTAyNCIsImlhdCI6MTc1MDc3NDkxNSwiZXhwIjoxNzUwODYxMzE1fQ.YKQB2eIzK_tMBXmwsmH41nSdhvBD194SZimQ6Arf8UY",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"heading\": \"Updated Website Development Project\",\n    \"summary\": \"Create a modern responsive website with advanced features\",\n    \"description\": \"Develop a full-stack website using React for frontend, Node.js for backend, and MongoDB for database. Include user authentication, admin dashboard, payment integration, real-time notifications, and mobile responsiveness. The website should have SEO optimization, fast loading times, and security features.\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5000/api/tasks/685a9746225f5447353d6367",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"tasks",
+						"685a9746225f5447353d6367"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Task",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NWE3MGFiYjE3ZmIxNWU3NWMzZTAyNCIsImlhdCI6MTc1MDc3NDkxNSwiZXhwIjoxNzUwODYxMzE1fQ.YKQB2eIzK_tMBXmwsmH41nSdhvBD194SZimQ6Arf8UY",
+							"type": "string"
+						}
+					]
+				},
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5000/api/tasks/685a9746225f5447353d6367",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"tasks",
+						"685a9746225f5447353d6367"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
