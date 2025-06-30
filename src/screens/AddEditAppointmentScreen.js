@@ -344,7 +344,7 @@ const AddEditAppointmentScreen = ({ navigation, route }) => {
 
               {/* Customer Search */}
               <View style={styles.customerSearchContainer}>
-                <Text style={styles.searchLabel}>Search Existing Customer</Text>
+                <Text style={styles.searchLabel}>Search Existing Customer to Link</Text>
                 <Searchbar
                   placeholder="Search customers by name or phone..."
                   onChangeText={handleCustomerSearch}

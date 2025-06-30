@@ -22,6 +22,7 @@ import AddEditAppointmentScreen from './src/screens/AddEditAppointmentScreen';
 
 // Import context
 import { AuthProvider, useAuth } from './src/context/AuthContext';
+import { WebSocketProvider } from './src/context/WebSocketContext';
 
 const Stack = createStackNavigator();
 
@@ -142,9 +143,11 @@ export default function App() {
   return (
     <PaperProvider theme={theme}>
       <AuthProvider>
-        <AppNavigator />
-        <StatusBar style="dark" />
-        <Toast />
+        <WebSocketProvider>
+          <AppNavigator />
+          <StatusBar style="dark" />
+          <Toast />
+        </WebSocketProvider>
       </AuthProvider>
     </PaperProvider>
   );

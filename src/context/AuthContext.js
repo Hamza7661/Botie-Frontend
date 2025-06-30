@@ -69,6 +69,15 @@ export const AuthProvider = ({ children }) => {
       const authToken = response.data.token;
       const userData = response.data.data?.user;
       
+      // Check if user is verified
+      if (userData && !userData.isEmailVerified) {
+        return { 
+          success: false, 
+          error: 'Please verify your email address before signing in. Check your inbox for a verification email.',
+          requiresVerification: true
+        };
+      }
+      
       await AsyncStorage.setItem('token', authToken);
       await AsyncStorage.setItem('user', JSON.stringify(userData));
       
@@ -87,7 +96,15 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       const response = await authAPI.register(userData);
-      return { success: true, data: response.data };
+      
+      // Store the email for verification message
+      await AsyncStorage.setItem('pendingVerificationEmail', userData.email);
+      
+      return { 
+        success: true, 
+        data: response.data,
+        message: 'Registration successful! Please check your email to verify your account before signing in.'
+      };
     } catch (error) {
       return { 
         success: false, 
@@ -112,6 +129,35 @@ export const AuthProvider = ({ children }) => {
     AsyncStorage.setItem('user', JSON.stringify(updatedUser));
   };
 
+  const clearPendingVerification = async () => {
+    try {
+      await AsyncStorage.removeItem('pendingVerificationEmail');
+    } catch (error) {
+      console.error('Error clearing pending verification:', error);
+    }
+  };
+
+  const getPendingVerificationEmail = async () => {
+    try {
+      return await AsyncStorage.getItem('pendingVerificationEmail');
+    } catch (error) {
+      console.error('Error getting pending verification email:', error);
+      return null;
+    }
+  };
+
+  const resendVerification = async (email) => {
+    try {
+      const response = await authAPI.resendVerification(email);
+      return { success: true, message: 'Verification email sent successfully!' };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error.response?.data?.message || 'Failed to resend verification email' 
+      };
+    }
+  };
+
   const value = {
     user,
     token,
@@ -122,6 +168,9 @@ export const AuthProvider = ({ children }) => {
     logout,
     forceLogout,
     updateUser,
+    clearPendingVerification,
+    getPendingVerificationEmail,
+    resendVerification,
   };
 
   return (

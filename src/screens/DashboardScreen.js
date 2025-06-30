@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Card, Button, Searchbar, FAB, IconButton } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
+import { useWebSocket } from '../context/WebSocketContext';
 import { tasksAPI } from '../services/api';
 import { useTheme } from 'react-native-paper';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
@@ -83,13 +84,14 @@ const HeaderComponent = React.memo(({ user, handleLogout, handleProfile, searchQ
 
 const DashboardScreen = ({ navigation }) => {
   const { user, logout } = useAuth();
+  const { webSocketService, connectionStatus } = useWebSocket();
   const theme = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const debounceTimeout = useRef();
   const route = useRoute();
   const lastSearchQuery = useRef(searchQuery);
 
-  const limit = 2; // Show 2 items per page
+  const limit = 10;
 
   // Use the pagination hook
   const {
@@ -107,6 +109,36 @@ const DashboardScreen = ({ navigation }) => {
     goToPage,
     reset,
   } = usePagination(tasksAPI.getTasks, 1, limit);
+
+  // WebSocket event handlers for real-time updates
+  useEffect(() => {
+    const handleTaskCreated = (data) => {
+      // Refresh the current page to show the new task
+      refresh(searchQuery);
+    };
+
+    const handleTaskUpdated = (data) => {
+      // Refresh the current page to show updated task
+      refresh(searchQuery);
+    };
+
+    const handleTaskDeleted = (data) => {
+      // Refresh the current page to remove deleted task
+      refresh(searchQuery);
+    };
+
+    // Register WebSocket event listeners
+    webSocketService.on('task-created', handleTaskCreated);
+    webSocketService.on('task-updated', handleTaskUpdated);
+    webSocketService.on('task-deleted', handleTaskDeleted);
+
+    // Cleanup event listeners
+    return () => {
+      webSocketService.off('task-created', handleTaskCreated);
+      webSocketService.off('task-updated', handleTaskUpdated);
+      webSocketService.off('task-deleted', handleTaskDeleted);
+    };
+  }, [webSocketService, refresh, searchQuery]);
 
   // Debounced search effect
   useEffect(() => {

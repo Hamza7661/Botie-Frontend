@@ -63,6 +63,7 @@ export const authAPI = {
   changePassword: (passwordData) => api.put('/auth/changepassword', passwordData),
   forgotPassword: (email) => api.post('/auth/forgotpassword', { email }),
   resetPassword: (token, newPassword) => api.put(`/auth/resetpassword/${token}`, { newPassword }),
+  resendVerification: (email) => api.post('/auth/resend-verification', { email }),
 };
 
 // User API

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,19 +12,73 @@ import { TextInput, Button } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import { showToast } from '../utils/toast';
 import Preloader from '../components/Preloader';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const LoginScreen = ({ navigation }) => {
+const LoginScreen = ({ navigation, route }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [verificationMessage, setVerificationMessage] = useState('');
   
   // Error states
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
   
-  const { login } = useAuth();
+  const { login, getPendingVerificationEmail, clearPendingVerification, resendVerification } = useAuth();
   const passwordRef = useRef(null);
+
+  useEffect(() => {
+    checkPendingVerification();
+    
+    // Check for verification message from navigation params
+    if (route.params?.verificationMessage) {
+      setVerificationMessage(route.params.verificationMessage);
+      // Clear the params to avoid showing the message again
+      navigation.setParams({ verificationMessage: undefined });
+    }
+  }, [route.params?.verificationMessage]);
+
+  const checkPendingVerification = async () => {
+    const pendingEmail = await getPendingVerificationEmail();
+    if (pendingEmail) {
+      setVerificationMessage(`Please check your email (${pendingEmail}) to verify your account before signing in.`);
+      setEmail(pendingEmail);
+      await clearPendingVerification();
+    }
+
+    // Check for verification message from registration
+    try {
+      const storedMessage = await AsyncStorage.getItem('verificationMessage');
+      if (storedMessage) {
+        setVerificationMessage(storedMessage);
+        await AsyncStorage.removeItem('verificationMessage');
+      }
+    } catch (error) {
+      console.error('Error checking verification message:', error);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!email.trim()) {
+      showToast.error('Please enter your email address first');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await resendVerification(email);
+      if (result.success) {
+        showToast.success(result.message);
+      } else {
+        showToast.error(result.error);
+      }
+    } catch (error) {
+      showToast.error('An unexpected error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const validateForm = () => {
     const newErrors = {};
@@ -76,7 +130,11 @@ const LoginScreen = ({ navigation }) => {
     try {
       const result = await login(email, password);
       if (!result.success) {
-        showToast.error(result.error);
+        if (result.requiresVerification) {
+          setVerificationMessage(result.error);
+        } else {
+          showToast.error(result.error);
+        }
       }
     } catch (error) {
       // Handle any unexpected errors that might occur outside of the login function
@@ -118,6 +176,29 @@ const LoginScreen = ({ navigation }) => {
 
             {/* Login Form */}
             <View style={styles.form}>
+              {verificationMessage ? (
+                <View style={styles.verificationContainer}>
+                  <Text style={styles.verificationMessage}>{verificationMessage}</Text>
+                  <View style={styles.verificationButtons}>
+                    <TouchableOpacity
+                      onPress={handleResendVerification}
+                      style={[styles.verificationButton, styles.resendButton]}
+                      disabled={loading}
+                    >
+                      <Text style={styles.resendButtonText}>
+                        {loading ? 'Sending...' : 'Resend Email'}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => setVerificationMessage('')}
+                      style={[styles.verificationButton, styles.dismissButton]}
+                    >
+                      <Text style={styles.dismissText}>Dismiss</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : null}
+
               <View style={styles.inputContainer}>
                 <TextInput
                   label="Email"
@@ -316,6 +397,50 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     textDecorationLine: 'underline',
+  },
+  verificationContainer: {
+    marginBottom: 16,
+    padding: 16,
+    backgroundColor: '#e8f4fd',
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#007bff',
+  },
+  verificationMessage: {
+    color: '#2c5aa0',
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  verificationButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+  },
+  verificationButton: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  resendButton: {
+    backgroundColor: '#007bff',
+  },
+  resendButtonText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  dismissButton: {
+    backgroundColor: '#6c757d',
+  },
+  dismissText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });
 

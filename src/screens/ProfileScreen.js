@@ -86,7 +86,7 @@ const ProfileScreen = ({ navigation }) => {
       newErrors.address = 'Address is required';
     }
     if (!editForm.profession.trim()) {
-      newErrors.profession = 'Profession is required';
+      newErrors.profession = 'Business name is required';
     }
     setEditErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -216,14 +216,14 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   const confirmDeleteAccount = async () => {
-    setLoading(true);
-    try {
-      await userAPI.deleteUser(user._id);
-      logout();
-    } catch (error) {
+            setLoading(true);
+            try {
+              await userAPI.deleteUser(user._id);
+              logout();
+            } catch (error) {
       showToast.error(error.response?.data?.message || 'Failed to delete account');
-      setLoading(false);
-    }
+              setLoading(false);
+            }
   };
 
   const renderProfileInfo = () => (
@@ -257,13 +257,13 @@ const ProfileScreen = ({ navigation }) => {
           </View>
 
           <View style={styles.sectionBlock}>
-            <Text style={styles.sectionHeader}>Profession</Text>
+            <Text style={styles.sectionHeader}>Business Name</Text>
             <Text style={styles.professionValue}>{fetchedUser?.profession}</Text>
           </View>
 
           {fetchedUser?.professionDescription && (
             <View style={styles.sectionBlock}>
-              <Text style={styles.sectionHeader}>Profession Description</Text>
+              <Text style={styles.sectionHeader}>Business Description</Text>
               <Text style={styles.professionDescValue}>{fetchedUser?.professionDescription}</Text>
             </View>
           )}
@@ -445,7 +445,7 @@ const ProfileScreen = ({ navigation }) => {
           </View>
           <View style={styles.inputContainer}>
             <TextInput
-              label="Profession"
+              label="Business Name"
               value={editForm.profession}
               onChangeText={(value) => handleEditFieldChange('profession', value)}
               mode="outlined"
@@ -466,7 +466,7 @@ const ProfileScreen = ({ navigation }) => {
           </View>
           <View style={styles.inputContainer}>
             <TextInput
-              label="Profession Description"
+              label="Business Description"
               value={editForm.professionDescription}
               onChangeText={(value) => handleEditFieldChange('professionDescription', value)}
               mode="outlined"
@@ -519,90 +519,90 @@ const ProfileScreen = ({ navigation }) => {
           <Text style={styles.modalTitle}>Change Password</Text>
           
           <View style={styles.inputContainer}>
-            <TextInput
-              label="Current Password"
-              value={passwordForm.currentPassword}
+          <TextInput
+            label="Current Password"
+            value={passwordForm.currentPassword}
               onChangeText={(value) => handlePasswordFieldChange('currentPassword', value)}
-              mode="outlined"
-              secureTextEntry={!showPassword}
-              right={
-                <TextInput.Icon
-                  icon={showPassword ? 'eye-off' : 'eye'}
-                  onPress={() => setShowPassword(!showPassword)}
-                />
-              }
-              style={styles.input}
-              theme={{
-                colors: {
+            mode="outlined"
+            secureTextEntry={!showPassword}
+            right={
+              <TextInput.Icon
+                icon={showPassword ? 'eye-off' : 'eye'}
+                onPress={() => setShowPassword(!showPassword)}
+              />
+            }
+            style={styles.input}
+            theme={{
+              colors: {
                   primary: passwordErrors.currentPassword ? '#e53e3e' : '#007bff',
-                  background: '#ffffff',
-                  placeholder: '#666666',
+                background: '#ffffff',
+                placeholder: '#666666',
                   error: '#e53e3e',
-                },
-              }}
+              },
+            }}
               onBlur={() => handlePasswordFieldBlur('currentPassword')}
               error={!!(passwordErrors.currentPassword && passwordTouched.currentPassword)}
-            />
+          />
             {passwordErrors.currentPassword && passwordTouched.currentPassword && (
               <Text style={styles.errorText}>{passwordErrors.currentPassword}</Text>
             )}
           </View>
 
           <View style={styles.inputContainer}>
-            <TextInput
-              label="New Password"
-              value={passwordForm.newPassword}
+          <TextInput
+            label="New Password"
+            value={passwordForm.newPassword}
               onChangeText={(value) => handlePasswordFieldChange('newPassword', value)}
-              mode="outlined"
-              secureTextEntry={!showNewPassword}
-              right={
-                <TextInput.Icon
-                  icon={showNewPassword ? 'eye-off' : 'eye'}
-                  onPress={() => setShowNewPassword(!showNewPassword)}
-                />
-              }
-              style={styles.input}
-              theme={{
-                colors: {
+            mode="outlined"
+            secureTextEntry={!showNewPassword}
+            right={
+              <TextInput.Icon
+                icon={showNewPassword ? 'eye-off' : 'eye'}
+                onPress={() => setShowNewPassword(!showNewPassword)}
+              />
+            }
+            style={styles.input}
+            theme={{
+              colors: {
                   primary: passwordErrors.newPassword ? '#e53e3e' : '#007bff',
-                  background: '#ffffff',
-                  placeholder: '#666666',
+                background: '#ffffff',
+                placeholder: '#666666',
                   error: '#e53e3e',
-                },
-              }}
+              },
+            }}
               onBlur={() => handlePasswordFieldBlur('newPassword')}
               error={!!(passwordErrors.newPassword && passwordTouched.newPassword)}
-            />
+          />
             {passwordErrors.newPassword && passwordTouched.newPassword && (
               <Text style={styles.errorText}>{passwordErrors.newPassword}</Text>
             )}
           </View>
 
           <View style={styles.inputContainer}>
-            <TextInput
-              label="Confirm New Password"
-              value={passwordForm.confirmPassword}
+          <TextInput
+            label="Confirm New Password"
+            value={passwordForm.confirmPassword}
               onChangeText={(value) => handlePasswordFieldChange('confirmPassword', value)}
-              mode="outlined"
-              secureTextEntry={!showConfirmPassword}
-              right={
-                <TextInput.Icon
-                  icon={showConfirmPassword ? 'eye-off' : 'eye'}
-                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                />
-              }
-              style={styles.input}
-              theme={{
-                colors: {
+            mode="outlined"
+            secureTextEntry={!showConfirmPassword}
+            right={
+              <TextInput.Icon
+                icon={showConfirmPassword ? 'eye-off' : 'eye'}
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+              />
+            }
+            style={styles.input}
+            theme={{
+              colors: {
                   primary: passwordErrors.confirmPassword ? '#e53e3e' : '#007bff',
-                  background: '#ffffff',
-                  placeholder: '#666666',
+                background: '#ffffff',
+                placeholder: '#666666',
                   error: '#e53e3e',
-                },
-              }}
+              },
+            }}
               onBlur={() => handlePasswordFieldBlur('confirmPassword')}
               error={!!(passwordErrors.confirmPassword && passwordTouched.confirmPassword)}
-            />
+          />
             {passwordErrors.confirmPassword && passwordTouched.confirmPassword && (
               <Text style={styles.errorText}>{passwordErrors.confirmPassword}</Text>
             )}

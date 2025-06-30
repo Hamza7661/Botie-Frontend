@@ -14,6 +14,7 @@ import { useAuth } from '../context/AuthContext';
 import { showToast } from '../utils/toast';
 import Preloader from '../components/Preloader';
 import { validatePhone } from '../utils/validation';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const RegisterScreen = ({ navigation }) => {
   const screenWidth = Dimensions.get('window').width;
@@ -85,9 +86,9 @@ const RegisterScreen = ({ navigation }) => {
       newErrors.address = 'Address is required';
     }
 
-    // Profession validation
+    // Business Name validation
     if (!formData.profession.trim()) {
-      newErrors.profession = 'Profession is required';
+      newErrors.profession = 'Business name is required';
     }
 
     // Password validation
@@ -146,9 +147,12 @@ const RegisterScreen = ({ navigation }) => {
       const result = await register(registerData);
       
       if (result.success) {
-        showToast.success('Account created successfully! Please sign in.');
+        // Store verification message to show on login screen
+        const message = `Please check your email (${formData.email}) to verify your account before signing in.`;
+        await AsyncStorage.setItem('verificationMessage', message);
+        showToast.success('Registration successful! Redirecting to login...');
         setTimeout(() => {
-          navigation.navigate('Login');
+          navigation.navigate('Login', { verificationMessage: message });
         }, 2000);
       } else {
         showToast.error(result.error);
@@ -292,11 +296,11 @@ const RegisterScreen = ({ navigation }) => {
                 ref: addressRef
               })}
 
-              {renderInput('profession', 'Profession', {
+              {renderInput('profession', 'Business Name', {
                 ref: professionRef
               })}
 
-              {renderInput('professionDescription', 'Profession Description', {
+              {renderInput('professionDescription', 'Business Description', {
                 multiline: true,
                 numberOfLines: 4,
                 ref: professionDescRef
