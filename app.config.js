@@ -16,10 +16,11 @@ export default {
     },
     web: {
       favicon: "./assets/favicon.png",
-      bundler: "webpack"
+      bundler: "metro"
     },
     extra: {
       apiBaseUrl: "http://localhost:5000/api"
-    }
+    },
+    publicUrl: process.env.RENDER_EXTERNAL_URL || "https://your-app-name.onrender.com"
   }
 }; 
