@@ -16,7 +16,7 @@ export default {
     },
     web: {
       favicon: "./assets/favicon.png",
-      bundler: "webpack"
+      bundler: "metro"
     },
     extra: {
       apiBaseUrl: "http://localhost:5000/api"
