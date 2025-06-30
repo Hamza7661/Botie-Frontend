@@ -96,7 +96,26 @@ src/
     └── validation.js  # Form validation helpers
 ```
 
-## 🔧 Configuration
+## �� Configuration
+
+### Environment Variables
+
+For deployment, you need to set up environment variables:
+
+#### Local Development
+Create a `.env` file in the root directory:
+```env
+# Public URL for static site deployment
+RENDER_EXTERNAL_URL=https://your-app-name.onrender.com
+
+# API Base URL
+EXPO_PUBLIC_API_BASE_URL=http://localhost:5000/api
+```
+
+#### Render Deployment
+In your Render dashboard, set these environment variables:
+- `RENDER_EXTERNAL_URL`: Your Render app URL (e.g., `https://your-app-name.onrender.com`)
+- `EXPO_PUBLIC_API_BASE_URL`: Your production API URL
 
 ### API Configuration
 
@@ -105,14 +124,6 @@ The app connects to a backend API. Update the API base URL in your environment v
 ```javascript
 // src/services/api.js
 const API_BASE_URL = Constants.expoConfig.extra.apiBaseUrl;
-```
-
-### Environment Variables
-
-Create a `.env` file with the following variables:
-
-```env
-EXPO_PUBLIC_API_BASE_URL=http://localhost:5000/api
 ```
 
 ## 📋 API Endpoints

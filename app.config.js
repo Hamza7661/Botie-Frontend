@@ -19,8 +19,7 @@ export default {
       bundler: "metro"
     },
     extra: {
-      apiBaseUrl: "http://localhost:5000/api"
-    },
-    publicUrl: process.env.RENDER_EXTERNAL_URL || "https://your-app-name.onrender.com"
+      apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL || "http://localhost:5000/api"
+    }
   }
 }; 
