@@ -153,7 +153,7 @@ const RegisterScreen = ({ navigation }) => {
         showToast.success('Registration successful! Redirecting to login...');
         setTimeout(() => {
           navigation.navigate('Login', { verificationMessage: message });
-        }, 2000);
+        }, 1000);
       } else {
         showToast.error(result.error);
       }
