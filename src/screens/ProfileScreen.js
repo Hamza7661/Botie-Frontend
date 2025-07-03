@@ -13,6 +13,7 @@ import { useAuth } from '../context/AuthContext';
 import { userAPI, authAPI } from '../services/api';
 import { showToast } from '../utils/toast';
 import ConfirmationDialog from '../components/ConfirmationDialog';
+import { validatePhone } from '../utils/validation';
 
 const ProfileScreen = ({ navigation }) => {
   const { user, updateUser, logout } = useAuth();
@@ -79,8 +80,11 @@ const ProfileScreen = ({ navigation }) => {
     }
     if (!editForm.phoneNumber.trim()) {
       newErrors.phoneNumber = 'Phone number is required';
-    } else if (!/^\+?[0-9\s-]{7,}$/.test(editForm.phoneNumber)) {
-      newErrors.phoneNumber = 'Please enter a valid phone number';
+    } else {
+      const phoneError = validatePhone(editForm.phoneNumber);
+      if (phoneError) {
+        newErrors.phoneNumber = phoneError;
+      }
     }
     if (!editForm.address.trim()) {
       newErrors.address = 'Address is required';

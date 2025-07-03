@@ -14,6 +14,7 @@ import RNPickerSelect from 'react-native-picker-select';
 import { tasksAPI, customerAPI } from '../services/api';
 import Preloader from '../components/Preloader';
 import { showToast } from '../utils/toast';
+import { validatePhone } from '../utils/validation';
 
 const AddEditAppointmentScreen = ({ navigation, route }) => {
   const { appointmentId, isEditing } = route.params || {};
@@ -168,8 +169,11 @@ const AddEditAppointmentScreen = ({ navigation, route }) => {
     // Customer phone validation
     if (!formData.customer.phoneNumber.trim()) {
       newErrors.customerPhone = String('Customer phone number is required');
-    } else if (!/^[\+]?[1-9][\d]{0,15}$/.test(formData.customer.phoneNumber.replace(/\s/g, ''))) {
-      newErrors.customerPhone = String('Please enter a valid phone number');
+    } else {
+      const phoneError = validatePhone(formData.customer.phoneNumber);
+      if (phoneError) {
+        newErrors.customerPhone = String(phoneError);
+      }
     }
 
     setErrors(newErrors);

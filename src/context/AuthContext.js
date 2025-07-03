@@ -86,9 +86,30 @@ export const AuthProvider = ({ children }) => {
       
       return { success: true };
     } catch (error) {
+      const errorMessage = error.response?.data?.message || 'Login failed';
+      
+      // Check if the error message indicates email verification is required
+      if (errorMessage.toLowerCase().includes('verify your email') || 
+          errorMessage.toLowerCase().includes('email verification') ||
+          errorMessage.toLowerCase().includes('please verify')) {
+        
+        // Automatically resend verification email
+        try {
+          await authAPI.resendVerification(email);
+        } catch (resendError) {
+          console.error('Failed to auto-resend verification email:', resendError);
+        }
+        
+        return { 
+          success: false, 
+          error: errorMessage,
+          requiresVerification: true
+        };
+      }
+      
       return { 
         success: false, 
-        error: error.response?.data?.message || 'Login failed' 
+        error: errorMessage
       };
     }
   };
