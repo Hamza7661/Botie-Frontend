@@ -12,19 +12,21 @@ import {
 import { Card, Button, Searchbar, FAB, IconButton } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import { useWebSocket } from '../context/WebSocketContext';
-import { tasksAPI } from '../services/api';
+import { tasksAPI, remindersAPI, TaskType } from '../services/api';
 import { useTheme } from 'react-native-paper';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
 import { usePagination } from '../hooks/usePagination';
 import { showToast } from '../utils/toast';
+import { TabStorage } from '../utils/storage';
+import TabSelector from '../components/TabSelector';
 
 // Module-level variable to store dashboard page
 let savedDashboardPage = null;
 
 // Memoized Searchbar component
-const AppointmentsSearchbar = React.memo(({ value, onChangeText, onSubmitEditing, theme, style }) => (
+const AppointmentsSearchbar = React.memo(({ value, onChangeText, onSubmitEditing, theme, style, selectedTab }) => (
   <Searchbar
-    placeholder="Search appointments..."
+    placeholder={`Search ${selectedTab === TaskType.APPOINTMENT ? 'appointments' : 'reminders'}...`}
     onChangeText={onChangeText}
     value={value}
     onSubmitEditing={onSubmitEditing}
@@ -35,7 +37,7 @@ const AppointmentsSearchbar = React.memo(({ value, onChangeText, onSubmitEditing
 ));
 
 // Memoized Header component
-const HeaderComponent = React.memo(({ user, handleLogout, handleProfile, searchQuery, setSearchQuery, handleSearch, appointments, totalAppointments, theme, styles }) => (
+const HeaderComponent = React.memo(({ user, handleLogout, handleProfile, searchQuery, setSearchQuery, handleSearch, appointments, totalAppointments, selectedTab, onTabChange, theme, styles }) => (
   <View style={styles.headerCard}>
     <View style={styles.headerContent}>
       <View style={styles.userInfo}>
@@ -70,13 +72,22 @@ const HeaderComponent = React.memo(({ user, handleLogout, handleProfile, searchQ
         onSubmitEditing={handleSearch}
         style={styles.searchBar}
         theme={theme}
+        selectedTab={selectedTab}
       />
     </View>
+    {/* Tab Selector */}
+    <TabSelector
+      selectedTab={selectedTab}
+      onTabChange={onTabChange}
+      theme={theme}
+    />
     {/* Appointments Header */}
     <View style={styles.appointmentsHeader}>
-      <Text style={styles.appointmentsTitle}>Your Appointments</Text>
+      <Text style={styles.appointmentsTitle}>
+        Your {selectedTab === TaskType.APPOINTMENT ? 'Appointments' : 'Reminders'}
+      </Text>
       <Text style={styles.appointmentsCount} numberOfLines={1} ellipsizeMode="tail">
-        {totalAppointments} appointment{totalAppointments !== 1 ? 's' : ''}
+        {totalAppointments} {selectedTab === TaskType.APPOINTMENT ? 'appointment' : 'reminder'}{totalAppointments !== 1 ? 's' : ''}
       </Text>
     </View>
   </View>
@@ -87,16 +98,35 @@ const DashboardScreen = ({ navigation }) => {
   const { webSocketService, connectionStatus } = useWebSocket();
   const theme = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTab, setSelectedTab] = useState(null);
   const debounceTimeout = useRef();
   const route = useRoute();
   const lastSearchQuery = useRef(searchQuery);
+  const initialLoadDone = useRef(false);
+  const [tabSwitching, setTabSwitching] = useState(false);
 
-  const limit = 10;
+  const limit = 2;
 
-  // Use the pagination hook
+  // Memoize the fetch function to prevent unnecessary re-renders
+  const fetchTasks = useCallback((params) => {
+    if (selectedTab === TaskType.APPOINTMENT) {
+      return tasksAPI.getTasks(params);
+    } else {
+      // Default to reminders (TaskType.REMINDER or null)
+      return remindersAPI.getReminders(params);
+    }
+  }, [selectedTab]);
+
+  // Create a dummy function for when selectedTab is null
+  const dummyFetch = useCallback(() => {
+    return Promise.resolve({ data: { data: { tasks: [], pagination: { totalPages: 1, totalTasks: 0 } } } });
+  }, []);
+
+  // Use the pagination hook with type parameter
   const {
     data: appointments,
     loading,
+    setLoading,
     refreshing,
     currentPage,
     totalPages,
@@ -108,7 +138,34 @@ const DashboardScreen = ({ navigation }) => {
     loadMore,
     goToPage,
     reset,
-  } = usePagination(tasksAPI.getTasks, 1, limit);
+  } = usePagination(selectedTab !== null ? fetchTasks : dummyFetch, 1, limit);
+
+  // Load selected tab from storage on component mount and when screen comes into focus
+  useEffect(() => {
+    const loadSelectedTab = async () => {
+      const storedTab = await TabStorage.getSelectedTab();
+      setSelectedTab(storedTab);
+    };
+    loadSelectedTab();
+  }, []);
+
+  // Initial data load
+  useEffect(() => {
+    if (!initialLoadDone.current && selectedTab !== null) {
+      initialLoadDone.current = true;
+      refresh(searchQuery);
+    }
+  }, [selectedTab, refresh, searchQuery]);
+
+  // Handle tab change
+  const handleTabChange = async (newTab) => {
+    if (newTab !== selectedTab) {
+      setSelectedTab(newTab);
+      await TabStorage.setSelectedTab(newTab);
+      // Reset to first page when changing tabs
+      reset();
+    }
+  };
 
   // WebSocket event handlers for real-time updates
   useEffect(() => {
@@ -158,7 +215,12 @@ const DashboardScreen = ({ navigation }) => {
   // Handle errors
   useEffect(() => {
     if (error) {
+      // Check if it's a 401 unauthorized error
+      if (error.response?.status === 401) {
+        showToast.error('Session expired. Please login to continue.');
+      } else {
       showToast.error('Failed to load appointments');
+      }
     }
   }, [error]);
 
@@ -182,24 +244,42 @@ const DashboardScreen = ({ navigation }) => {
     navigation.navigate('Profile');
   };
 
-  // Go to the correct page if coming from a delete, on focus
+  // Combined focus effect: handle saved page restoration and tab changes
   useFocusEffect(
     React.useCallback(() => {
+      // Always refresh data when dashboard comes into focus
+      refresh(searchQuery);
+
+      // Restore saved page if needed
       if (savedDashboardPage) {
         goToPage(savedDashboardPage, searchQuery);
         savedDashboardPage = null;
-      } else {
-        goToPage(1, searchQuery);
       }
-    }, [searchQuery])
+
+      // Check for tab change
+      (async () => {
+        const storedTab = await TabStorage.getSelectedTab();
+        if (storedTab !== selectedTab) {
+          setSelectedTab(storedTab);
+          reset();
+        }
+      })();
+    }, [searchQuery, selectedTab, reset, refresh, goToPage])
   );
+
+  useEffect(() => {
+    if (selectedTab !== null && initialLoadDone.current) {
+      setTabSwitching(true);
+      loadData(1, true, searchQuery).finally(() => setTabSwitching(false));
+    }
+  }, [selectedTab, loadData, searchQuery]);
 
   const renderAppointmentCard = ({ item }) => (
     <Card style={styles.appointmentCard} mode="outlined">
       <Card.Content style={styles.cardContent}>
         <View style={styles.cardHeader}>
           <Text style={styles.appointmentTitle} numberOfLines={1}>
-            {item.heading}
+            {selectedTab === TaskType.REMINDER ? item.description : item.heading}
           </Text>
           <View style={styles.cardActions}>
             <IconButton
@@ -208,7 +288,10 @@ const DashboardScreen = ({ navigation }) => {
               iconColor="#007bff"
               onPress={() => {
                 savedDashboardPage = currentPage;
-                navigation.navigate('AppointmentDetail', { appointmentId: item._id });
+                navigation.navigate('AppointmentDetail', { 
+                  appointmentId: item._id,
+                  taskType: selectedTab
+                });
               }}
             />
             <IconButton
@@ -216,9 +299,11 @@ const DashboardScreen = ({ navigation }) => {
               size={20}
               iconColor="#007bff"
               onPress={() => {
+                savedDashboardPage = currentPage;
                 navigation.navigate('AddEditAppointment', { 
                   appointmentId: item._id,
-                  isEditing: true 
+                  isEditing: true,
+                  taskType: selectedTab
                 });
               }}
             />
@@ -226,10 +311,25 @@ const DashboardScreen = ({ navigation }) => {
         </View>
         
         <Text style={styles.appointmentSummary} numberOfLines={2}>
-          {item.summary}
+          {selectedTab === TaskType.REMINDER 
+            ? (item.locationName ? `📍 ${item.locationName}` : item.description)
+            : item.summary
+          }
         </Text>
         
-        {item.customer && (
+        {selectedTab === TaskType.REMINDER && item.reminderDateTime && (
+          <Text style={styles.reminderDateTime}>
+            ⏰ {new Date(item.reminderDateTime).toLocaleString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false
+            })}
+          </Text>
+        )}
+        
+        {selectedTab === TaskType.APPOINTMENT && item.customer && (
           <View style={styles.customerInfo}>
             <Text style={styles.customerName}>
               Customer: {item.customer.name}
@@ -244,6 +344,7 @@ const DashboardScreen = ({ navigation }) => {
           <Text style={styles.appointmentDate}>
             Created: {new Date(item.createdAt).toLocaleDateString()}
           </Text>
+          {selectedTab === TaskType.APPOINTMENT && (
           <View style={[
             styles.statusBadge,
             item.isResolved ? styles.resolvedStatus : styles.unresolvedStatus
@@ -255,13 +356,15 @@ const DashboardScreen = ({ navigation }) => {
               {item.isResolved ? "✓ Resolved" : "✗ Unresolved"}
             </Text>
           </View>
+          )}
         </View>
       </Card.Content>
     </Card>
   );
 
   const renderFooter = () => {
-    if (!loading) return null;
+    // Only show footer loading when there's data (for pagination)
+    if (!loading || appointments.length === 0) return null;
     return (
       <View style={styles.loadingMore}>
         <ActivityIndicator size="small" color="#007bff" />
@@ -270,19 +373,40 @@ const DashboardScreen = ({ navigation }) => {
     );
   };
 
+  const renderLoadingState = () => (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+        marginVertical: 32,
+      }}
+    >
+      <ActivityIndicator size="small" color="#007bff" />
+      <Text style={{ marginLeft: 10, fontSize: 16, color: '#666' }}>
+        Loading {selectedTab === TaskType.APPOINTMENT ? 'appointments' : 'reminders'}...
+      </Text>
+    </View>
+  );
+
   const renderEmptyState = () => (
     <Card style={styles.emptyCard} mode="outlined">
       <Card.Content style={styles.emptyCardContent}>
-        <Text style={styles.emptyIcon}>📋</Text>
-        <Text style={styles.emptyTitle}>No Appointments</Text>
+        <Text style={styles.emptyIcon}>
+          {selectedTab === TaskType.APPOINTMENT ? '📅' : '⏰'}
+        </Text>
+        <Text style={styles.emptyTitle}>
+          No {selectedTab === TaskType.APPOINTMENT ? 'Appointments' : 'Reminders'}
+        </Text>
         <Text style={styles.emptySubtitle}>
           {searchQuery.trim() 
-            ? `No appointments found for "${searchQuery}"`
-            : 'You don\'t have any appointments yet'
+            ? `No ${selectedTab === TaskType.APPOINTMENT ? 'appointments' : 'reminders'} found for "${searchQuery}"`
+            : `You don't have any ${selectedTab === TaskType.APPOINTMENT ? 'appointments' : 'reminders'} yet`
           }
         </Text>
         <Text style={styles.emptyAction}>
-          Tap the + button to create your first appointment
+          Tap the + button to create your first {selectedTab === TaskType.APPOINTMENT ? 'appointment' : 'reminder'}
         </Text>
       </Card.Content>
     </Card>
@@ -312,6 +436,8 @@ const DashboardScreen = ({ navigation }) => {
               handleSearch={handleSearch}
               appointments={appointments}
               totalAppointments={totalAppointments}
+              selectedTab={selectedTab}
+              onTabChange={handleTabChange}
               theme={theme}
               styles={styles}
             />
@@ -322,7 +448,7 @@ const DashboardScreen = ({ navigation }) => {
           }
           contentContainerStyle={styles.whiteListContainer}
           showsVerticalScrollIndicator={false}
-          ListEmptyComponent={renderEmptyState}
+          ListEmptyComponent={loading || tabSwitching ? renderLoadingState : renderEmptyState}
         />
 
         {/* Pagination Controls - Always show, even if only 1 page */}
@@ -362,12 +488,15 @@ const DashboardScreen = ({ navigation }) => {
           </View>
         </View>
 
-        {/* FAB for adding new appointment */}
+        {/* FAB for adding new appointment/reminder */}
         <FAB
           icon="plus"
           style={styles.fab}
           onPress={() => {
-            navigation.navigate('AddEditAppointment', { isEditing: false });
+            navigation.navigate('AddEditAppointment', { 
+              isEditing: false,
+              taskType: selectedTab 
+            });
           }}
           color="#ffffff"
         />
@@ -536,6 +665,12 @@ const styles = StyleSheet.create({
   customerPhone: {
     fontSize: 12,
     color: '#666666',
+  },
+  reminderDateTime: {
+    fontSize: 13,
+    color: '#007bff',
+    fontWeight: '500',
+    marginBottom: 8,
   },
   appointmentDate: {
     fontSize: 12,

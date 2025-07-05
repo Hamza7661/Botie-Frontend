@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 
 export const usePagination = (fetchFunction, initialPage = 1, limit = 10) => {
   const [data, setData] = useState([]);
@@ -23,8 +23,11 @@ export const usePagination = (fetchFunction, initialPage = 1, limit = 10) => {
     try {
       setError(null);
       
-      if (page === 1) {
+      // Set loading to true for all page loads
         setLoading(true);
+      // Only clear data for pagination, not for refresh (tab switching)
+      if (!isRefresh) {
+        setData([]);
       }
 
       const response = await fetchFunction({
@@ -35,22 +38,30 @@ export const usePagination = (fetchFunction, initialPage = 1, limit = 10) => {
         sortOrder: 'desc',
       }, abortControllerRef.current.signal);
 
-      const { tasks, pagination } = response.data.data;
-      const total = pagination.totalPages;
-      const totalCount = pagination.totalTasks || 0;
+      // Handle different response structures
+      const responseData = response.data.data;
+      
+      // Check if it's tasks or reminders structure
+      const items = responseData.tasks || responseData.reminders || responseData.data || [];
+      const pagination = responseData.pagination || {};
+      const total = pagination.totalPages || 1;
+      const totalCount = pagination.totalTasks || pagination.totalReminders || pagination.total || 0;
 
       // Check if current page has no data and we're not on page 1
-      if (tasks.length === 0 && page > 1) {
+      if (items.length === 0 && page > 1) {
         // Go back one page
         const previousPage = page - 1;
         setCurrentPage(previousPage);
         // Adjust total pages to exclude the empty page
         setTotalPages(previousPage);
-        // Recursively load the previous page
-        return loadData(previousPage, isRefresh, searchQuery);
+        // Don't recursively call loadData to avoid infinite loops
+        // Just set the data to empty and return
+        setData([]);
+        setHasMore(false);
+        return;
       }
 
-      setData(tasks); // Always replace data for any page
+      setData(items); // Always replace data for any page
       setCurrentPage(page); // Update current page
       setTotalPages(total);
       setTotalItems(totalCount);
@@ -95,9 +106,22 @@ export const usePagination = (fetchFunction, initialPage = 1, limit = 10) => {
     setRefreshing(false);
   }, [initialPage]);
 
+  // Reset when fetch function changes (e.g., when switching tabs)
+  useEffect(() => {
+    // Just clear data and reset pagination state
+    // Let the DashboardScreen handle setting loading state
+    setData([]);
+    setCurrentPage(initialPage);
+    setTotalPages(1);
+    setTotalItems(0);
+    setHasMore(true);
+    setError(null);
+  }, [fetchFunction, initialPage]);
+
   return {
     data,
     loading,
+    setLoading,
     refreshing,
     currentPage,
     totalPages,

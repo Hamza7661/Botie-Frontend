@@ -4,6 +4,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_BASE_URL = Constants.expoConfig.extra.apiBaseUrl;
 
+// Task Type Enum
+export const TaskType = {
+  APPOINTMENT: 1,
+  REMINDER: 2,
+};
+
 // Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -77,14 +83,32 @@ export const userAPI = {
 export const tasksAPI = {
   getTasks: (params = {}) => {
     const { page = 1, limit = 10, search = '', sortBy = 'createdAt', sortOrder = 'desc' } = params;
+    const queryParams = { page, limit, search, sortBy, sortOrder };
+    
     return api.get('/tasks', {
-      params: { page, limit, search, sortBy, sortOrder }
+      params: queryParams
     });
   },
   getTaskById: (taskId) => api.get(`/tasks/${taskId}`),
   createTask: (taskData) => api.post('/tasks', taskData),
   updateTask: (taskId, taskData) => api.put(`/tasks/${taskId}`, taskData),
   deleteTask: (taskId) => api.delete(`/tasks/${taskId}`),
+};
+
+// Reminders API
+export const remindersAPI = {
+  getReminders: (params = {}) => {
+    const { page = 1, limit = 10, search = '', sortBy = 'createdAt', sortOrder = 'desc' } = params;
+    const queryParams = { page, limit, search, sortBy, sortOrder };
+    
+    return api.get('/reminders', {
+      params: queryParams
+    });
+  },
+  getReminderById: (reminderId) => api.get(`/reminders/${reminderId}`),
+  createReminder: (reminderData) => api.post('/reminders', reminderData),
+  updateReminder: (reminderId, reminderData) => api.put(`/reminders/${reminderId}`, reminderData),
+  deleteReminder: (reminderId) => api.delete(`/reminders/${reminderId}`),
 };
 
 // Customer API

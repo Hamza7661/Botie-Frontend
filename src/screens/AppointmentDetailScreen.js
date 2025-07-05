@@ -7,13 +7,14 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Button, Divider } from 'react-native-paper';
-import { tasksAPI } from '../services/api';
+import { tasksAPI, remindersAPI, TaskType } from '../services/api';
 import { showToast } from '../utils/toast';
 import ConfirmationDialog from '../components/ConfirmationDialog';
+import MapPicker from '../components/MapPicker';
 
 const AppointmentDetailScreen = ({ navigation, route }) => {
-  const { appointmentId } = route.params;
-  const [appointment, setAppointment] = useState(null);
+  const { appointmentId, taskType } = route.params;
+  const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
 
@@ -24,11 +25,22 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
   const loadAppointment = async () => {
     try {
       setLoading(true);
-      const response = await tasksAPI.getTaskById(appointmentId);
-      // API response: { success: true, data: { ... } }
-      setAppointment(response.data.data);
+      let response;
+      
+      if (taskType === TaskType.REMINDER) {
+        response = await remindersAPI.getReminderById(appointmentId);
+      } else {
+        response = await tasksAPI.getTaskById(appointmentId);
+      }
+      
+      setItem(response.data.data);
     } catch (error) {
-      showToast.error('Failed to load appointment details');
+      // Check if it's a 401 unauthorized error
+      if (error.response?.status === 401) {
+        showToast.error('Session expired. Please login to continue.');
+      } else {
+        showToast.error(`Failed to load ${taskType === TaskType.REMINDER ? 'reminder' : 'appointment'} details`);
+      }
       navigation.goBack();
     } finally {
       setLoading(false);
@@ -41,12 +53,21 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
 
   const confirmDelete = async () => {
     try {
+      if (taskType === TaskType.REMINDER) {
+        await remindersAPI.deleteReminder(appointmentId);
+        showToast.success('Reminder deleted successfully');
+      } else {
       await tasksAPI.deleteTask(appointmentId);
       showToast.success('Appointment deleted successfully');
-      // Determine which page to go to after delete (no global store needed)
+      }
       navigation.replace('Dashboard');
     } catch (error) {
-      showToast.error(error.response?.data?.message || 'Failed to delete appointment');
+      // Check if it's a 401 unauthorized error
+      if (error.response?.status === 401) {
+        showToast.error('Session expired. Please login to continue.');
+      } else {
+        showToast.error(error.response?.data?.message || `Failed to delete ${taskType === TaskType.REMINDER ? 'reminder' : 'appointment'}`);
+      }
     }
   };
 
@@ -54,15 +75,15 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#007bff" />
-        <Text style={styles.loadingText}>Loading appointment...</Text>
+        <Text style={styles.loadingText}>Loading {taskType === TaskType.REMINDER ? 'reminder' : 'appointment'}...</Text>
       </View>
     );
   }
 
-  if (!appointment) {
+  if (!item) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Appointment not found</Text>
+        <Text style={styles.errorText}>{taskType === TaskType.REMINDER ? 'Reminder' : 'Appointment'} not found</Text>
       </View>
     );
   }
@@ -71,48 +92,95 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.detailCard}>
-          <Text style={styles.heading}>{appointment.heading}</Text>
-          <Text style={styles.summary}>{appointment.summary}</Text>
+          {taskType === TaskType.REMINDER ? (
+            <>
+              <Text style={styles.heading}>{item.description}</Text>
+              <Text style={styles.summary}>📍 {item.locationName}</Text>
+              <Divider style={styles.divider} />
+              <Text style={styles.sectionTitle}>Reminder Details</Text>
+              <View style={styles.detailsRow}>
+                <Text style={styles.detailLabel}>Created:</Text>
+                <Text style={styles.detailValue}>{new Date(item.createdAt).toLocaleDateString()}</Text>
+              </View>
+              <View style={styles.detailsRow}>
+                <Text style={styles.detailLabel}>Last Updated:</Text>
+                <Text style={styles.detailValue}>{new Date(item.updatedAt).toLocaleDateString()}</Text>
+              </View>
+              {item.reminderDateTime && (
+                <View style={styles.detailsRow}>
+                  <Text style={styles.detailLabel}>Reminder Date:</Text>
+                  <Text style={styles.detailValue}>
+                    {new Date(item.reminderDateTime).toLocaleString('en-US', {
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: false
+                    })}
+                  </Text>
+                </View>
+              )}
+              {item.coordinates && (
+                <>
+                  <Divider style={styles.divider} />
+                  <Text style={styles.sectionTitle}>Location</Text>
+                  <View style={{ marginVertical: 12 }}>
+                    <MapPicker
+                      value={item.coordinates}
+                      readOnly={true}
+                    />
+                  </View>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              <Text style={styles.heading}>{item.heading}</Text>
+              <Text style={styles.summary}>{item.summary}</Text>
           <Divider style={styles.divider} />
           <Text style={styles.sectionTitle}>Description</Text>
-          <Text style={styles.description}>{appointment.description}</Text>
+              <Text style={styles.description}>{item.description}</Text>
           <Divider style={styles.divider} />
           <Text style={styles.sectionTitle}>Customer Information</Text>
           <View style={styles.customerInfo}>
-            <Text style={styles.customerName}>Name: {appointment.customer?.name || '-'}</Text>
-            <Text style={styles.customerPhone}>Phone: {appointment.customer?.phoneNumber || '-'}</Text>
-            <Text style={styles.customerAddress}>Address: {appointment.customer?.address || '-'}</Text>
+                <Text style={styles.customerName}>Name: {item.customer?.name || '-'}</Text>
+                <Text style={styles.customerPhone}>Phone: {item.customer?.phoneNumber || '-'}</Text>
+                <Text style={styles.customerAddress}>Address: {item.customer?.address || '-'}</Text>
           </View>
           <Divider style={styles.divider} />
           <Text style={styles.sectionTitle}>Appointment Details</Text>
           <View style={styles.detailsRow}>
             <Text style={styles.detailLabel}>Created:</Text>
-            <Text style={styles.detailValue}>{new Date(appointment.createdAt).toLocaleDateString()}</Text>
+                <Text style={styles.detailValue}>{new Date(item.createdAt).toLocaleDateString()}</Text>
           </View>
           <View style={styles.detailsRow}>
             <Text style={styles.detailLabel}>Last Updated:</Text>
-            <Text style={styles.detailValue}>{new Date(appointment.updatedAt).toLocaleDateString()}</Text>
+                <Text style={styles.detailValue}>{new Date(item.updatedAt).toLocaleDateString()}</Text>
           </View>
           <View style={styles.detailsRow}>
             <Text style={styles.detailLabel}>Status:</Text>
             <View style={[
               styles.statusBadge,
-              appointment.isResolved ? styles.resolvedStatus : styles.unresolvedStatus
+                  item.isResolved ? styles.resolvedStatus : styles.unresolvedStatus
             ]}>
               <Text style={[
                 styles.statusText,
-                appointment.isResolved ? styles.resolvedStatusText : styles.unresolvedStatusText
+                    item.isResolved ? styles.resolvedStatusText : styles.unresolvedStatusText
               ]}>
-                {appointment.isResolved ? "✓ Resolved" : "✗ Unresolved"}
+                    {item.isResolved ? "✓ Resolved" : "✗ Unresolved"}
               </Text>
             </View>
           </View>
+            </>
+          )}
           <View style={styles.buttonContainer}>
             <Button
               mode="contained"
               onPress={() => navigation.navigate('AddEditAppointment', {
-                appointmentId: appointment._id,
-                isEditing: true
+                appointmentId: item._id,
+                isEditing: true,
+                taskType: taskType
               })}
               style={styles.editButton}
             >
@@ -131,8 +199,8 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
       </ScrollView>
       <ConfirmationDialog
         visible={showDeleteConfirmation}
-        title="Delete Appointment"
-        message="Are you sure you want to delete this appointment? This action cannot be undone."
+        title={`Delete ${taskType === TaskType.REMINDER ? 'Reminder' : 'Appointment'}`}
+        message={`Are you sure you want to delete this ${taskType === TaskType.REMINDER ? 'reminder' : 'appointment'}? This action cannot be undone.`}
         confirmText="Delete"
         cancelText="Cancel"
         onConfirm={confirmDelete}

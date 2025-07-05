@@ -4,12 +4,12 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
 import { authAPI } from '../services/api';
+import { showToast } from '../utils/toast';
 
 const ForgotPasswordScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -18,7 +18,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
 
   const handleForgotPassword = async () => {
     if (!email) {
-      Alert.alert('Error', 'Please enter your email address');
+      showToast.error('Please enter your email address');
       return;
     }
 
@@ -26,9 +26,18 @@ const ForgotPasswordScreen = ({ navigation }) => {
     setMessage('');
     try {
       const response = await authAPI.forgotPassword(email);
-      setMessage(response.data.message || 'If a user with that email exists, a password reset link has been sent.');
+      const successMessage = response.data.message || 'If a user with that email exists, a password reset link has been sent.';
+      setMessage(successMessage);
+      showToast.success('Reset email sent successfully!');
     } catch (error) {
-      setMessage(error.response?.data?.message || 'Failed to send reset email');
+      // Check if it's a 401 unauthorized error
+      if (error.response?.status === 401) {
+        showToast.error('Session expired. Please login to continue.');
+      } else {
+        const errorMessage = error.response?.data?.message || 'Failed to send reset email';
+        setMessage(errorMessage);
+        showToast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }

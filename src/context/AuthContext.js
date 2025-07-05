@@ -58,6 +58,8 @@ export const AuthProvider = ({ children }) => {
       await AsyncStorage.removeItem('user');
       setToken(null);
       setUser(null);
+      // Show session expired message
+      showToast.error('Session expired. Please login to continue.');
     } catch (error) {
       console.error('Error during force logout:', error);
     }

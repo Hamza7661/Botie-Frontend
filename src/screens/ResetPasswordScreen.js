@@ -4,13 +4,13 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import { authAPI } from '../services/api';
+import { showToast } from '../utils/toast';
 
 const ResetPasswordScreen = ({ navigation, route }) => {
   const [newPassword, setNewPassword] = useState('');
@@ -24,30 +24,35 @@ const ResetPasswordScreen = ({ navigation, route }) => {
 
   const handleResetPassword = async () => {
     if (!newPassword || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all fields');
+      showToast.error('Please fill in all fields');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      showToast.error('Passwords do not match');
       return;
     }
 
     if (newPassword.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters long');
+      showToast.error('Password must be at least 6 characters long');
       return;
     }
 
     setLoading(true);
     try {
       await authAPI.resetPassword(token, newPassword);
-      Alert.alert(
-        'Success',
-        'Your password has been reset successfully. You can now sign in with your new password.',
-        [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
-      );
+      showToast.success('Your password has been reset successfully. You can now sign in with your new password.');
+      // Navigate to login after a short delay to allow toast to be seen
+      setTimeout(() => {
+        navigation.navigate('Login');
+      }, 2000);
     } catch (error) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to reset password');
+      // Check if it's a 401 unauthorized error
+      if (error.response?.status === 401) {
+        showToast.error('Session expired. Please login to continue.');
+      } else {
+        showToast.error(error.response?.data?.message || 'Failed to reset password');
+      }
     } finally {
       setLoading(false);
     }

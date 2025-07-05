@@ -4,25 +4,30 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
 } from 'react-native';
 import { TextInput, Button, Checkbox, Searchbar } from 'react-native-paper';
 import RNPickerSelect from 'react-native-picker-select';
-import { tasksAPI, customerAPI } from '../services/api';
+import { tasksAPI, remindersAPI, customerAPI, TaskType } from '../services/api';
 import Preloader from '../components/Preloader';
 import { showToast } from '../utils/toast';
 import { validatePhone } from '../utils/validation';
+import MapPicker from '../components/MapPicker';
+import DateTimePicker from '../components/DateTimePicker';
+import { MiniTabSelector } from '../components/TabSelector';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AddEditAppointmentScreen = ({ navigation, route }) => {
-  const { appointmentId, isEditing } = route.params || {};
+  const { appointmentId, isEditing, taskType } = route.params || {};
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     heading: '',
     summary: '',
     description: '',
+    reminderDateTime: null,
+    coordinates: null,
     isResolved: false,
     customer: {
       name: '',
@@ -51,22 +56,52 @@ const AddEditAppointmentScreen = ({ navigation, route }) => {
   const loadAppointment = async () => {
     try {
       setLoading(true);
-      const response = await tasksAPI.getTaskById(appointmentId);
-      const appointment = response.data.data;
+      let response;
       
-      setFormData({
-        heading: appointment.heading || '',
-        summary: appointment.summary || '',
-        description: appointment.description || '',
-        isResolved: appointment.isResolved || false,
-        customer: {
-          name: appointment.customer?.name || '',
-          address: appointment.customer?.address || '',
-          phoneNumber: appointment.customer?.phoneNumber || '',
-        },
-      });
+      if (taskType === TaskType.REMINDER) {
+        response = await remindersAPI.getReminderById(appointmentId);
+      } else {
+        response = await tasksAPI.getTaskById(appointmentId);
+      }
+      
+      const item = response.data.data;
+      
+      if (taskType === TaskType.REMINDER) {
+        // Handle reminder data structure
+        setFormData({
+          heading: item.description || '',
+          summary: item.locationName || '',
+          description: item.description || '',
+          reminderDateTime: item.reminderDateTime ? new Date(item.reminderDateTime) : null,
+          coordinates: item.coordinates || null,
+          isResolved: false, // Reminders don't have resolved status
+          customer: {
+            name: '',
+            address: '',
+            phoneNumber: '',
+          },
+        });
+      } else {
+        // Handle appointment data structure
+        setFormData({
+          heading: item.heading || '',
+          summary: item.summary || '',
+          description: item.description || '',
+          isResolved: item.isResolved || false,
+          customer: {
+            name: item.customer?.name || '',
+            address: item.customer?.address || '',
+            phoneNumber: item.customer?.phoneNumber || '',
+          },
+        });
+      }
     } catch (error) {
-      Alert.alert('Error', 'Failed to load appointment');
+      // Check if it's a 401 unauthorized error
+      if (error.response?.status === 401) {
+        showToast.error('Session expired. Please login to continue.');
+      } else {
+        showToast.error('Failed to load appointment/reminder');
+      }
       navigation.goBack();
     } finally {
       setLoading(false);
@@ -140,44 +175,62 @@ const AddEditAppointmentScreen = ({ navigation, route }) => {
   const validateForm = () => {
     const newErrors = {};
 
-    // Heading validation
-    if (!formData.heading.trim()) {
-      newErrors.heading = String('Heading is required');
-    } else if (formData.heading.trim().length < 3) {
-      newErrors.heading = String('Heading must be at least 3 characters');
-    }
+    if (taskType === TaskType.REMINDER) {
+      // Reminder validation
+      if (!formData.description.trim()) {
+        newErrors.description = String('Description is required');
+      }
+      
+      if (!formData.reminderDateTime) {
+        newErrors.reminderDateTime = String('Reminder date and time is required');
+      } else if (formData.reminderDateTime < new Date()) {
+        newErrors.reminderDateTime = String('Reminder date and time must be in the future');
+      }
 
-    // Summary validation
-    if (!formData.summary.trim()) {
-      newErrors.summary = String('Summary is required');
-    } else if (formData.summary.trim().length < 10) {
-      newErrors.summary = String('Summary must be at least 10 characters');
-    }
-
-    // Description validation
-    if (!formData.description.trim()) {
-      newErrors.description = String('Description is required');
-    }
-
-    // Customer name validation
-    if (!formData.customer.name.trim()) {
-      newErrors.customerName = String('Customer name is required');
-    } else if (formData.customer.name.trim().length < 2) {
-      newErrors.customerName = String('Customer name must be at least 2 characters');
-    }
-
-    // Customer phone validation
-    if (!formData.customer.phoneNumber.trim()) {
-      newErrors.customerPhone = String('Customer phone number is required');
+      // Location validation: either coordinates OR location name is required
+      if (!formData.coordinates && !formData.summary.trim()) {
+        newErrors.coordinates = 'Either location coordinates or location name is required';
+      }
     } else {
-      const phoneError = validatePhone(formData.customer.phoneNumber);
-      if (phoneError) {
-        newErrors.customerPhone = String(phoneError);
+      // Appointment validation
+      if (!formData.heading.trim()) {
+        newErrors.heading = String('Heading is required');
+      } else if (formData.heading.trim().length < 3) {
+        newErrors.heading = String('Heading must be at least 3 characters');
+      }
+
+      if (!formData.summary.trim()) {
+        newErrors.summary = String('Summary is required');
+      } else if (formData.summary.trim().length < 10) {
+        newErrors.summary = String('Summary must be at least 10 characters');
+      }
+
+      if (!formData.description.trim()) {
+        newErrors.description = String('Description is required');
+      }
+
+      // Customer validation only for appointments
+      if (!formData.customer.name.trim()) {
+        newErrors.customerName = String('Customer name is required');
+      } else if (formData.customer.name.trim().length < 2) {
+        newErrors.customerName = String('Customer name must be at least 2 characters');
+      }
+
+      if (!formData.customer.phoneNumber.trim()) {
+        newErrors.customerPhone = String('Customer phone number is required');
+      } else {
+        const phoneError = validatePhone(formData.customer.phoneNumber);
+        if (phoneError) {
+          newErrors.customerPhone = String(phoneError);
+        }
       }
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const isValid = Object.keys(newErrors).filter(key => key !== 'coordinates').length === 0;
+    console.log('Validation errors:', newErrors);
+    console.log('Form is valid:', isValid);
+    return isValid;
   };
 
   const updateFormData = (field, value) => {
@@ -218,35 +271,101 @@ const AddEditAppointmentScreen = ({ navigation, route }) => {
   };
 
   const handleSubmit = async () => {
-    // Mark all fields as touched
-    setTouched({
-      heading: true,
-      summary: true,
-      description: true,
-      customerName: true,
-      customerPhone: true,
-    });
+    // Mark relevant fields as touched based on task type
+    if (taskType === TaskType.REMINDER) {
+      setTouched({
+        description: true,
+        reminderDateTime: true,
+      });
+    } else {
+      setTouched({
+        heading: true,
+        summary: true,
+        description: true,
+        customerName: true,
+        customerPhone: true,
+      });
+    }
 
+    console.log('Form validation - coordinates:', formData.coordinates);
+    console.log('Form validation - summary:', formData.summary);
+    
     if (!validateForm()) {
+      console.log('Form validation failed');
       return;
     }
 
+    console.log('Form validation passed, proceeding with API call');
     setLoading(true);
     try {
-      if (isEditing) {
-        const response = await tasksAPI.updateTask(appointmentId, formData);
-        const message = response?.data?.message || 'Appointment updated successfully';
-        showToast.success(String(message));
-        navigation.navigate('Dashboard');
+      if (taskType === TaskType.REMINDER) {
+        // Handle reminder data structure
+        const reminderData = {
+          description: formData.description,
+          locationName: formData.summary,
+          reminderDateTime: formData.reminderDateTime ? formData.reminderDateTime.toISOString() : null,
+        };
+
+        // Add coordinates if available
+        if (formData.coordinates) {
+          reminderData.coordinates = formData.coordinates;
+        }
+
+        console.log('Reminder data to save:', reminderData);
+
+        if (isEditing) {
+          console.log('Updating reminder with ID:', appointmentId);
+          const response = await remindersAPI.updateReminder(appointmentId, reminderData);
+          const message = response?.data?.message || 'Reminder updated successfully';
+          showToast.success(String(message));
+        } else {
+          console.log('Creating new reminder');
+          const response = await remindersAPI.createReminder(reminderData);
+          const message = response?.data?.message || 'Reminder created successfully';
+          showToast.success(String(message));
+        }
       } else {
-        const response = await tasksAPI.createTask(formData);
-        const message = response?.data?.message || 'Appointment created successfully';
-        showToast.success(String(message));
+        // Handle appointment data structure - exclude reminder-specific fields
+        const appointmentData = {
+          heading: formData.heading,
+          summary: formData.summary,
+          description: formData.description,
+          isResolved: formData.isResolved,
+          customer: formData.customer,
+        };
+        
+        console.log('Appointment data to save:', appointmentData);
+        
+        if (isEditing) {
+          console.log('Updating appointment with ID:', appointmentId);
+          const response = await tasksAPI.updateTask(appointmentId, appointmentData);
+          const message = response?.data?.message || 'Appointment updated successfully';
+          showToast.success(String(message));
+        } else {
+          console.log('Creating new appointment');
+          const response = await tasksAPI.createTask(appointmentData);
+          const message = response?.data?.message || 'Appointment created successfully';
+          showToast.success(String(message));
+        }
+      }
+      // Use goBack for updates to preserve the page, navigate for new items
+      if (isEditing) {
+        navigation.goBack();
+      } else {
         navigation.navigate('Dashboard');
       }
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Failed to save appointment';
-      showToast.error(String(errorMessage));
+      console.log('Error during save:', error);
+      console.log('Error response:', error.response);
+      console.log('Error message:', error.message);
+      
+      // Check if it's a 401 unauthorized error
+      if (error.response?.status === 401) {
+        showToast.error('Session expired. Please login to continue.');
+      } else {
+        const errorMessage = error.response?.data?.message || `Failed to save ${taskType === TaskType.APPOINTMENT ? 'appointment' : 'reminder'}`;
+        showToast.error(String(errorMessage));
+      }
     } finally {
       setLoading(false);
     }
@@ -321,6 +440,16 @@ const AddEditAppointmentScreen = ({ navigation, route }) => {
     );
   };
 
+  const handleMiniTabChange = async (newTab) => {
+    if (newTab === taskType) return;
+    await AsyncStorage.setItem('dashboard_tab_selection', String(newTab));
+    console.log('MiniTabSelector set dashboard_tab_selection:', newTab);
+    navigation.replace('AddEditAppointment', {
+      taskType: newTab,
+      isEditing: false,
+    });
+  };
+
   return (
     <View style={styles.container}>
       <Preloader visible={loading} />
@@ -331,96 +460,166 @@ const AddEditAppointmentScreen = ({ navigation, route }) => {
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
           <View style={styles.formCard}>
             <View style={styles.formContent}>
+              {!isEditing && (
+                <View style={{ alignItems: 'flex-end', marginBottom: 8 }}>
+                  <MiniTabSelector
+                    selectedTab={taskType}
+                    onTabChange={handleMiniTabChange}
+                  />
+                </View>
+              )}
               <Text style={styles.title}>
-                {isEditing ? 'Edit Appointment' : 'Add New Appointment'}
+                {isEditing 
+                  ? `Edit ${taskType === TaskType.APPOINTMENT ? 'Appointment' : 'Reminder'}`
+                  : `Add New ${taskType === TaskType.APPOINTMENT ? 'Appointment' : 'Reminder'}`
+                }
               </Text>
 
-              {renderInput('heading', 'Heading')}
-
-              {renderInput('summary', 'Summary')}
-
-              {renderInput('description', 'Description', {
-                multiline: true,
-                numberOfLines: 4
-              })}
-
-              <Text style={styles.sectionTitle}>Customer Information</Text>
-
-              {/* Customer Search */}
-              <View style={styles.customerSearchContainer}>
-                <Text style={styles.searchLabel}>Search Existing Customer to Link</Text>
-                <Searchbar
-                  placeholder="Search customers by name or phone..."
-                  onChangeText={handleCustomerSearch}
-                  value={customerSearchQuery}
-                  style={styles.customerSearchBar}
-                  iconColor="#007bff"
-                  onClearIconPress={clearCustomerSelection}
-                />
-                
-                {showCustomerSearch && (
-                  <View style={styles.customerDropdown}>
-                    {loadingCustomers ? (
-                      <View style={styles.dropdownItem}>
-                        <Text style={styles.dropdownText}>Loading...</Text>
-                      </View>
-                    ) : customers.length > 0 ? (
-                      customers.map((customer) => (
-                        <TouchableOpacity
-                          key={customer._id}
-                          style={styles.dropdownItem}
-                          onPress={() => handleCustomerSelect(customer)}
-                        >
-                          <Text style={styles.dropdownText}>
-                            {customer.name} — {customer.phoneNumber}
-                          </Text>
-                        </TouchableOpacity>
-                      ))
-                    ) : customerSearchQuery.trim().length >= 2 ? (
-                      <View style={styles.dropdownItem}>
-                        <Text style={styles.dropdownText}>No customers found</Text>
-                      </View>
-                    ) : null}
-                  </View>
-                )}
-                
-                {selectedCustomer && (
-                  <View style={styles.selectedCustomerInfo}>
-                    <Text style={styles.selectedCustomerText}>
-                      Selected: {selectedCustomer.name}
-                    </Text>
-                    <TouchableOpacity
-                      onPress={clearCustomerSelection}
-                      style={styles.clearSelectionButton}
-                    >
-                      <Text style={styles.clearSelectionText}>Clear Selection</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-
-              {renderCustomerInput('name', 'Customer Name', {
-                disabled: !!selectedCustomer
-              })}
-
-              {renderCustomerInput('phoneNumber', 'Customer Phone Number', {
-                keyboardType: 'phone-pad',
-                disabled: !!selectedCustomer
-              })}
-
-              {renderCustomerInput('address', 'Customer Address', {
-                multiline: true,
-                numberOfLines: 3,
-                disabled: !!selectedCustomer
-              })}
-
-              {selectedCustomer && (
-                <Text style={styles.autoFillNote}>
-                  Customer fields are auto-filled from selected customer. Clear selection to edit manually.
-                </Text>
+              {taskType === TaskType.REMINDER ? (
+                <>
+                  {renderInput('description', 'Description', {
+                    multiline: true,
+                    numberOfLines: 4
+                  })}
+                  
+                  {/* DateTime Picker for Reminders */}
+                  <DateTimePicker
+                    value={formData.reminderDateTime}
+                    onChange={(date) => updateFormData('reminderDateTime', date)}
+                    label="Reminder Date & Time"
+                    error={errors.reminderDateTime}
+                    touched={touched.reminderDateTime}
+                  />
+                  
+                  {/* Map Picker for Reminders */}
+                  <MapPicker
+                    value={formData.coordinates}
+                    onChange={locationData => {
+                      console.log('MapPicker onChange - locationData:', locationData);
+                      console.log('MapPicker onChange - current formData.coordinates:', formData.coordinates);
+                      
+                      if (!locationData) {
+                        console.log('MapPicker - clearing coordinates');
+                        setFormData({
+                          ...formData,
+                          coordinates: null,
+                          summary: ''
+                        });
+                      } else {
+                        console.log('MapPicker - setting coordinates:', locationData);
+                        setFormData({ 
+                          ...formData, 
+                          coordinates: {
+                            latitude: locationData.latitude,
+                            longitude: locationData.longitude
+                          },
+                          // Auto-populate location name if available
+                          summary: locationData.locationName ? locationData.locationName : formData.summary
+                        });
+                      }
+                      // Clear location error if set
+                      if (errors.coordinates) {
+                        setErrors(prev => ({ ...prev, coordinates: undefined }));
+                      }
+                    }}
+                    initialLocationName={formData.summary}
+                  />
+                  {errors.coordinates && (
+                    <Text style={styles.errorText}>{errors.coordinates}</Text>
+                  )}
+                </>
+              ) : (
+                <>
+                  {renderInput('heading', 'Heading')}
+                  {renderInput('summary', 'Summary')}
+                  {renderInput('description', 'Description', {
+                    multiline: true,
+                    numberOfLines: 4
+                  })}
+                </>
               )}
 
-              {isEditing && (
+              {taskType === TaskType.APPOINTMENT && (
+                <>
+                  <Text style={styles.sectionTitle}>Customer Information</Text>
+
+                  {/* Customer Search */}
+                  <View style={styles.customerSearchContainer}>
+                    <Text style={styles.searchLabel}>Search Existing Customer to Link</Text>
+                    <Searchbar
+                      placeholder="Search customers by name or phone..."
+                      onChangeText={handleCustomerSearch}
+                      value={customerSearchQuery}
+                      style={styles.customerSearchBar}
+                      iconColor="#007bff"
+                      onClearIconPress={clearCustomerSelection}
+                    />
+                    
+                    {showCustomerSearch && (
+                      <View style={styles.customerDropdown}>
+                        {loadingCustomers ? (
+                          <View style={styles.dropdownItem}>
+                            <Text style={styles.dropdownText}>Loading...</Text>
+                          </View>
+                        ) : customers.length > 0 ? (
+                          customers.map((customer) => (
+                            <TouchableOpacity
+                              key={customer._id}
+                              style={styles.dropdownItem}
+                              onPress={() => handleCustomerSelect(customer)}
+                            >
+                              <Text style={styles.dropdownText}>
+                                {customer.name} — {customer.phoneNumber}
+                              </Text>
+                            </TouchableOpacity>
+                          ))
+                        ) : customerSearchQuery.trim().length >= 2 ? (
+                          <View style={styles.dropdownItem}>
+                            <Text style={styles.dropdownText}>No customers found</Text>
+                          </View>
+                        ) : null}
+                      </View>
+                    )}
+                    
+                    {selectedCustomer && (
+                      <View style={styles.selectedCustomerInfo}>
+                        <Text style={styles.selectedCustomerText}>
+                          Selected: {selectedCustomer.name}
+                        </Text>
+                        <TouchableOpacity
+                          onPress={clearCustomerSelection}
+                          style={styles.clearSelectionButton}
+                        >
+                          <Text style={styles.clearSelectionText}>Clear Selection</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+
+                  {renderCustomerInput('name', 'Customer Name', {
+                    disabled: !!selectedCustomer
+                  })}
+
+                  {renderCustomerInput('phoneNumber', 'Customer Phone Number', {
+                    keyboardType: 'phone-pad',
+                    disabled: !!selectedCustomer
+                  })}
+
+                  {renderCustomerInput('address', 'Customer Address', {
+                    multiline: true,
+                    numberOfLines: 3,
+                    disabled: !!selectedCustomer
+                  })}
+
+                  {selectedCustomer && (
+                    <Text style={styles.autoFillNote}>
+                      Customer fields are auto-filled from selected customer. Clear selection to edit manually.
+                    </Text>
+                  )}
+                </>
+              )}
+
+              {isEditing && taskType === TaskType.APPOINTMENT && (
                 <View style={styles.checkboxContainer}>
                   <Text style={styles.sectionTitle}>Status</Text>
                   <View style={styles.checkboxRow}>
@@ -512,6 +711,11 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: '#ffffff',
+  },
+  disabledInput: {
+    backgroundColor: '#f8f9fa',
+    borderColor: '#dee2e6',
+    opacity: 0.9,
   },
   inputError: {
     borderColor: '#e53e3e',
