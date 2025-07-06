@@ -28,6 +28,250 @@ const ProfileScreen = ({ navigation }) => {
 
   const screenWidth = Dimensions.get('window').width;
   const isLargeScreen = screenWidth > 768;
+  const isSmallScreen = screenWidth < 400;
+
+  // Create styles with access to isSmallScreen
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: '#f5f5f5',
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: isSmallScreen ? 3 : 20,
+      paddingBottom: isSmallScreen ? 3 : 40,
+    },
+    card: {
+      marginBottom: 20,
+      borderRadius: 12,
+      elevation: 4,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      backgroundColor: '#ffffff',
+    },
+    profileHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 2,
+    },
+    avatar: {
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+      backgroundColor: '#007bff',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 15,
+    },
+    avatarText: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: '#ffffff',
+    },
+    profileInfo: {
+      flex: 1,
+    },
+    profileName: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: '#333333',
+      marginBottom: 4,
+    },
+    profileEmail: {
+      fontSize: 14,
+      color: '#666666',
+      marginBottom: 4,
+    },
+    divider: {
+      marginVertical: 15,
+      backgroundColor: '#007bff',
+      height: 2,
+      borderRadius: 1,
+    },
+    dividerCompact: {
+      marginVertical: 8,
+      backgroundColor: '#007bff',
+      height: 2,
+      borderRadius: 1,
+    },
+    infoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 12,
+    },
+    infoLabel: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: '#333333',
+      flex: 1,
+    },
+    infoValue: {
+      fontSize: 14,
+      color: '#666666',
+      flex: 2,
+      textAlign: 'right',
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: '#007bff',
+      marginBottom: 20,
+    },
+    row: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    input: {
+      marginBottom: 0,
+      backgroundColor: '#ffffff',
+      fontSize: isSmallScreen ? 14 : 16,
+    },
+    halfInput: {
+      width: '100%',
+    },
+    buttonRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 10,
+    },
+    button: {
+      flex: 1,
+      marginHorizontal: 5,
+    },
+    cancelButton: {
+      borderColor: '#666666',
+    },
+    saveButton: {
+      backgroundColor: '#007bff',
+    },
+    actionButton: {
+      paddingVertical: 15,
+      paddingHorizontal: 20,
+      backgroundColor: '#ffffff',
+      borderRadius: 8,
+      marginBottom: 18,
+      borderWidth: 1,
+      borderColor: '#007bff',
+    },
+    actionButtonText: {
+      fontSize: 16,
+      color: '#007bff',
+      textAlign: 'center',
+      fontWeight: '500',
+    },
+    deleteButton: {
+      backgroundColor: '#fff5f5',
+      borderColor: '#e53e3e',
+    },
+    deleteButtonText: {
+      color: '#e53e3e',
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modalContent: {
+      backgroundColor: '#ffffff',
+      borderRadius: 12,
+      padding: 20,
+      width: '90%',
+      maxWidth: 400,
+      elevation: 8,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: '#007bff',
+      marginBottom: 20,
+      textAlign: 'center',
+    },
+    centeredContainer: {
+      width: '100%',
+      alignItems: isSmallScreen ? undefined : 'center',
+      marginTop: 0,
+      marginBottom: 0,
+      paddingHorizontal: isSmallScreen ? 0 : 0,
+    },
+    profileCard: {
+      width: '100%',
+      maxWidth: isSmallScreen ? '100%' : 600,
+      borderRadius: 16,
+      elevation: 4,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      backgroundColor: '#ffffff',
+      marginBottom: 14,
+      alignSelf: isSmallScreen ? 'stretch' : 'center',
+      flex: isSmallScreen ? 1 : undefined,
+      marginHorizontal: isSmallScreen ? 0 : 'auto',
+    },
+    sectionBlock: {
+      marginTop: 18,
+      marginBottom: 8,
+    },
+    sectionHeader: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: '#007bff',
+      marginBottom: 4,
+    },
+    professionValue: {
+      fontSize: 18,
+      color: '#222',
+      fontWeight: '500',
+      marginBottom: 2,
+      lineHeight: 24,
+    },
+    professionDescValue: {
+      fontSize: 16,
+      color: '#444',
+      lineHeight: 22,
+      backgroundColor: '#f4f8ff',
+      borderRadius: 8,
+      padding: 10,
+      marginTop: 2,
+    },
+    editFormCard: {
+      backgroundColor: '#ffffff',
+      borderRadius: 12,
+      elevation: 4,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      width: '100%',
+      maxWidth: isSmallScreen ? '100%' : 600,
+      padding: isSmallScreen ? 12 : 24,
+      alignSelf: isSmallScreen ? 'stretch' : 'center',
+      flex: isSmallScreen ? 1 : undefined,
+      marginHorizontal: isSmallScreen ? 0 : 'auto',
+    },
+    errorText: {
+      color: 'red',
+      fontSize: 12,
+      marginTop: 4,
+    },
+    inputContainer: {
+      marginBottom: 20,
+    },
+    inputContainerRow: {
+      marginBottom: 20,
+      flex: 1,
+    },
+  });
 
   // Fetch user data from API on mount and after update
   useEffect(() => {
@@ -503,7 +747,7 @@ const ProfileScreen = ({ navigation }) => {
               disabled={loading}
               style={[styles.button, styles.saveButton]}
             >
-              Save Changes
+              Save
             </Button>
           </View>
         </Card.Content>
@@ -633,7 +877,7 @@ const ProfileScreen = ({ navigation }) => {
               disabled={loading}
               style={[styles.button, styles.saveButton]}
             >
-              Change Password
+              Change
             </Button>
           </View>
         </View>
@@ -692,240 +936,5 @@ const ProfileScreen = ({ navigation }) => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  card: {
-    marginBottom: 20,
-    borderRadius: 12,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    backgroundColor: '#ffffff',
-  },
-  profileHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 2,
-  },
-  avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#007bff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15,
-  },
-  avatarText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#ffffff',
-  },
-  profileInfo: {
-    flex: 1,
-  },
-  profileName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333333',
-    marginBottom: 4,
-  },
-  profileEmail: {
-    fontSize: 14,
-    color: '#666666',
-    marginBottom: 4,
-  },
-  divider: {
-    marginVertical: 15,
-    backgroundColor: '#007bff',
-    height: 2,
-    borderRadius: 1,
-  },
-  dividerCompact: {
-    marginVertical: 8,
-    backgroundColor: '#007bff',
-    height: 2,
-    borderRadius: 1,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  infoLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#333333',
-    flex: 1,
-  },
-  infoValue: {
-    fontSize: 14,
-    color: '#666666',
-    flex: 2,
-    textAlign: 'right',
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#007bff',
-    marginBottom: 20,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  input: {
-    marginBottom: 0,
-    backgroundColor: '#ffffff',
-  },
-  halfInput: {
-    width: '100%',
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 10,
-  },
-  button: {
-    flex: 1,
-    marginHorizontal: 5,
-  },
-  cancelButton: {
-    borderColor: '#666666',
-  },
-  saveButton: {
-    backgroundColor: '#007bff',
-  },
-  actionButton: {
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    backgroundColor: '#ffffff',
-    borderRadius: 8,
-    marginBottom: 18,
-    borderWidth: 1,
-    borderColor: '#007bff',
-  },
-  actionButtonText: {
-    fontSize: 16,
-    color: '#007bff',
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  deleteButton: {
-    backgroundColor: '#fff5f5',
-    borderColor: '#e53e3e',
-  },
-  deleteButtonText: {
-    color: '#e53e3e',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 20,
-    width: '90%',
-    maxWidth: 400,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#007bff',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  centeredContainer: {
-    width: '100%',
-    alignItems: 'center',
-    marginTop: 0,
-    marginBottom: 0,
-  },
-  profileCard: {
-    width: '100%',
-    maxWidth: 600,
-    borderRadius: 16,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    backgroundColor: '#ffffff',
-    marginBottom: 14,
-    paddingHorizontal: 0,
-  },
-  sectionBlock: {
-    marginTop: 18,
-    marginBottom: 8,
-  },
-  sectionHeader: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#007bff',
-    marginBottom: 4,
-  },
-  professionValue: {
-    fontSize: 18,
-    color: '#222',
-    fontWeight: '500',
-    marginBottom: 2,
-    lineHeight: 24,
-  },
-  professionDescValue: {
-    fontSize: 16,
-    color: '#444',
-    lineHeight: 22,
-    backgroundColor: '#f4f8ff',
-    borderRadius: 8,
-    padding: 10,
-    marginTop: 2,
-  },
-  editFormCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    width: '100%',
-    maxWidth: 600,
-    padding: 24,
-  },
-  errorText: {
-    color: 'red',
-    fontSize: 12,
-    marginTop: 4,
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  inputContainerRow: {
-    marginBottom: 20,
-    flex: 1,
-  },
-});
 
 export default ProfileScreen; 

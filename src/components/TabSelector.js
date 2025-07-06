@@ -1,6 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated, Dimensions } from 'react-native';
 import { TaskType } from '../services/api';
+
+const { width: screenWidth } = Dimensions.get('window');
+const isSmallScreen = screenWidth < 400;
 
 const TabSelector = ({ selectedTab, onTabChange, theme }) => {
   const tabs = [
@@ -79,7 +82,8 @@ const TabSelector = ({ selectedTab, onTabChange, theme }) => {
 const styles = StyleSheet.create({
   container: {
     marginVertical: 10,
-    paddingHorizontal: 16,
+    paddingHorizontal: isSmallScreen ? 8 : 16,
+    width: '100%',
   },
   tabContainer: {
     flexDirection: 'row',
@@ -92,6 +96,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     position: 'relative',
+    width: '100%',
   },
   slidingBackground: {
     position: 'absolute',
@@ -112,8 +117,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: isSmallScreen ? 10 : 12,
+    paddingHorizontal: isSmallScreen ? 12 : 16,
     borderRadius: 8,
     backgroundColor: 'transparent',
     zIndex: 2,
@@ -128,7 +133,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   tabLabel: {
-    fontSize: 14,
+    fontSize: isSmallScreen ? 12 : 14,
     fontWeight: '600',
     color: '#666666',
   },
@@ -166,14 +171,14 @@ const miniStyles = StyleSheet.create({
     backgroundColor: '#f0f4fa',
     borderRadius: 16,
     padding: 2,
-    alignSelf: 'flex-end',
+    alignSelf: 'center', // Center on small screens
     marginTop: 4,
     marginBottom: 8,
-    marginRight: 8,
+    marginHorizontal: isSmallScreen ? 4 : 8, // Smaller margin on small screens
   },
   tab: {
-    paddingVertical: 2,
-    paddingHorizontal: 10,
+    paddingVertical: isSmallScreen ? 4 : 2,
+    paddingHorizontal: isSmallScreen ? 8 : 10,
     borderRadius: 12,
     marginHorizontal: 2,
     backgroundColor: 'transparent',
@@ -182,7 +187,7 @@ const miniStyles = StyleSheet.create({
     backgroundColor: '#007bff',
   },
   tabText: {
-    fontSize: 12,
+    fontSize: isSmallScreen ? 10 : 12,
     color: '#007bff',
     fontWeight: '500',
   },

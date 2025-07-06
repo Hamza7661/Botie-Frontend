@@ -101,7 +101,30 @@ function AppNavigator() {
             <Stack.Screen 
               name="Dashboard" 
               component={DashboardScreen} 
-              options={{ headerShown: false }}
+              options={{ 
+                headerTitle: () => (
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <View
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 16,
+                        backgroundColor: '#fff',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        marginRight: 8,
+                      }}
+                    >
+                      <Text style={{ color: '#007bff', fontWeight: 'bold', fontSize: 20 }}>B</Text>
+                    </View>
+                    <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 20 }}>Botie</Text>
+                  </View>
+                ),
+                headerStyle: {
+                  backgroundColor: '#007bff',
+                },
+                headerTitleAlign: 'center',
+              }}
             />
             <Stack.Screen 
               name="Profile" 

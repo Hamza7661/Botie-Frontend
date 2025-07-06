@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, TouchableOpacity, Text, FlatList, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, Text, StyleSheet, Dimensions } from 'react-native';
 import { TextInput } from 'react-native-paper';
 import * as Location from 'expo-location';
+
+const { width: screenWidth } = Dimensions.get('window');
+const isSmallScreen = screenWidth < 400;
 
 export default function LocationSearch({ onLocationSelect, placeholder = "Search for a location...", initialValue, initialCoordinates }) {
   const initialSelectedLocation = (initialValue && initialCoordinates)
@@ -112,7 +115,11 @@ export default function LocationSearch({ onLocationSelect, placeholder = "Search
       // Add country bias for Pakistan
       searchUrl += '&countrycodes=pk';
       
-      const response = await fetch(searchUrl);
+      const response = await fetch(searchUrl, {
+        headers: {
+          'User-Agent': 'BotieApp/1.0 (contact@botie.com)'
+        }
+      });
       const data = await response.json();
       
       const formattedResults = data.map(item => ({
@@ -263,13 +270,13 @@ export default function LocationSearch({ onLocationSelect, placeholder = "Search
       
       {showResults && results.length > 0 && !selectedLocation && (
         <View style={styles.resultsContainer}>
-          <FlatList
-            data={results}
-            renderItem={renderResultItem}
-            keyExtractor={(item) => item.id.toString()}
-            style={styles.resultsList}
-            keyboardShouldPersistTaps="handled"
-          />
+          <View style={styles.resultsList}>
+            {results.map((item, idx) => (
+              <React.Fragment key={item.id || idx}>
+                {renderResultItem({ item })}
+              </React.Fragment>
+            ))}
+          </View>
         </View>
       )}
       
@@ -292,7 +299,7 @@ const styles = StyleSheet.create({
   },
   paperInput: {
     height: 50,
-    fontSize: 16,
+    fontSize: isSmallScreen ? 14 : 16,
     backgroundColor: 'white',
     borderRadius: 8,
     marginBottom: 4,

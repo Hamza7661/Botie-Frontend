@@ -8,6 +8,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   Platform,
+  Dimensions,
 } from 'react-native';
 import { Card, Button, Searchbar, FAB, IconButton } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
@@ -20,6 +21,9 @@ import { showToast } from '../utils/toast';
 import { TabStorage } from '../utils/storage';
 import TabSelector from '../components/TabSelector';
 
+const { width: screenWidth } = Dimensions.get('window');
+const isSmallScreen = screenWidth < 400;
+
 // Module-level variable to store dashboard page
 let savedDashboardPage = null;
 
@@ -31,6 +35,7 @@ const AppointmentsSearchbar = React.memo(({ value, onChangeText, onSubmitEditing
     value={value}
     onSubmitEditing={onSubmitEditing}
     style={[style, { borderWidth: 1, borderColor: '#000', borderRadius: 8, backgroundColor: '#fff' }]}
+    inputStyle={{ fontSize: isSmallScreen ? 14 : 16 }}
     iconColor="#007bff"
     theme={theme}
   />
@@ -105,7 +110,7 @@ const DashboardScreen = ({ navigation }) => {
   const initialLoadDone = useRef(false);
   const [tabSwitching, setTabSwitching] = useState(false);
 
-  const limit = 2;
+  const limit = 10;
 
   // Memoize the fetch function to prevent unnecessary re-renders
   const fetchTasks = useCallback((params) => {
@@ -512,7 +517,7 @@ const styles = StyleSheet.create({
   },
   mainContainer: {
     flex: 1,
-    maxWidth: 800,
+    maxWidth: isSmallScreen ? '100%' : 800,
     alignSelf: 'center',
     width: '100%',
   },
@@ -531,38 +536,38 @@ const styles = StyleSheet.create({
   },
   headerCard: {
     backgroundColor: '#ffffff',
-    margin: 16,
-    marginTop: 15,
+    margin: isSmallScreen ? 4 : 16,
+    marginTop: isSmallScreen ? 12 : 24,
     borderRadius: 12,
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    padding: 20,
+    padding: isSmallScreen ? 10 : 20,
   },
   headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 20,
+    marginBottom: isSmallScreen ? 10 : 20,
   },
   userInfo: {
     flex: 1,
   },
   greeting: {
-    fontSize: 24,
+    fontSize: isSmallScreen ? 18 : 24,
     fontWeight: 'bold',
     color: '#333333',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: isSmallScreen ? 11 : 14,
     color: '#666666',
   },
   logoutButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: isSmallScreen ? 8 : 12,
+    paddingVertical: isSmallScreen ? 4 : 6,
     borderRadius: 6,
     backgroundColor: '#f8f9fa',
     borderWidth: 1,
@@ -570,34 +575,36 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     color: '#666666',
-    fontSize: 14,
+    fontSize: isSmallScreen ? 12 : 14,
     fontWeight: '500',
   },
   phoneSection: {
     backgroundColor: '#f8f9fa',
-    padding: 15,
+    padding: isSmallScreen ? 8 : 15,
     borderRadius: 8,
     borderLeftWidth: 4,
     borderLeftColor: '#007bff',
-    marginBottom: 20,
+    marginBottom: isSmallScreen ? 10 : 20,
   },
   phoneLabel: {
-    fontSize: 12,
+    fontSize: isSmallScreen ? 10 : 12,
     color: '#666666',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   phoneNumber: {
-    fontSize: 18,
+    fontSize: isSmallScreen ? 14 : 18,
     fontWeight: 'bold',
     color: '#333333',
   },
   searchContainer: {
-    marginBottom: 20,
+    marginBottom: isSmallScreen ? 10 : 20,
   },
   searchBar: {
     backgroundColor: '#ffffff',
     elevation: 2,
     borderRadius: 8,
+    fontSize: isSmallScreen ? 12 : 14,
+    minHeight: isSmallScreen ? 36 : 44,
   },
   appointmentsHeader: {
     flexDirection: 'row',
@@ -605,21 +612,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   appointmentsTitle: {
-    fontSize: 18,
+    fontSize: isSmallScreen ? 14 : 18,
     fontWeight: 'bold',
     color: '#333333',
     flex: 1,
-    marginRight: 10,
+    marginRight: 6,
   },
   appointmentsCount: {
-    fontSize: 14,
+    fontSize: isSmallScreen ? 11 : 14,
     color: '#666666',
     flexShrink: 1,
     textAlign: 'right',
   },
   appointmentCard: {
-    marginHorizontal: 16,
-    marginBottom: 12,
+    marginHorizontal: isSmallScreen ? 4 : 16,
+    marginBottom: isSmallScreen ? 6 : 12,
     borderRadius: 12,
     elevation: 4,
     shadowColor: '#000',
@@ -630,50 +637,50 @@ const styles = StyleSheet.create({
   },
   cardContent: {
     justifyContent: 'center',
-    padding: 16,
+    padding: isSmallScreen ? 8 : 16,
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: isSmallScreen ? 4 : 8,
   },
   appointmentTitle: {
-    fontSize: 16,
+    fontSize: isSmallScreen ? 13 : 16,
     fontWeight: 'bold',
     color: '#333333',
     flex: 1,
-    marginRight: 10,
+    marginRight: 6,
   },
   cardActions: {
     flexDirection: 'row',
   },
   appointmentSummary: {
-    fontSize: 14,
+    fontSize: isSmallScreen ? 11 : 14,
     color: '#666666',
-    marginBottom: 12,
-    lineHeight: 20,
+    marginBottom: isSmallScreen ? 6 : 12,
+    lineHeight: isSmallScreen ? 15 : 20,
   },
   customerInfo: {
-    marginBottom: 8,
+    marginBottom: isSmallScreen ? 4 : 8,
   },
   customerName: {
-    fontSize: 13,
+    fontSize: isSmallScreen ? 11 : 13,
     fontWeight: '500',
     color: '#333333',
   },
   customerPhone: {
-    fontSize: 12,
+    fontSize: isSmallScreen ? 10 : 12,
     color: '#666666',
   },
   reminderDateTime: {
-    fontSize: 13,
+    fontSize: isSmallScreen ? 14 : 16,
     color: '#007bff',
     fontWeight: '500',
-    marginBottom: 8,
+    marginBottom: isSmallScreen ? 4 : 8,
   },
   appointmentDate: {
-    fontSize: 12,
+    fontSize: isSmallScreen ? 10 : 12,
     color: '#999999',
     fontStyle: 'italic',
   },
@@ -684,28 +691,33 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   fab: {
-    position: 'fixed',
-    margin: 16,
+    position: Platform.OS === 'web' ? 'fixed' : 'absolute',
+    margin: isSmallScreen ? 8 : 16,
     right: 0,
-    bottom: 20,
-    width: 'max-content',
+    bottom: isSmallScreen ? 80 : 20,
+    width: isSmallScreen ? 44 : 'max-content',
+    height: isSmallScreen ? 44 : undefined,
     backgroundColor: '#007bff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
   },
   whiteListContainer: {
     backgroundColor: 'transparent',
     paddingBottom: 0,
   },
   paginationCard: {
-    marginHorizontal: 16,
-    marginBottom: 25,
-    marginTop: 8,
-    borderRadius: 12,
-    elevation: 4,
+    marginHorizontal: isSmallScreen ? 4 : 16,
+    marginTop: isSmallScreen ? 6 : 12,
+    marginBottom: isSmallScreen ? 6 : 12,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    elevation: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    backgroundColor: '#ffffff',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    padding: isSmallScreen ? 6 : 12,
   },
   paginationBar: {
     flexDirection: 'row',
@@ -791,7 +803,9 @@ const styles = StyleSheet.create({
     color: '#e53e3e',
   },
   emptyCard: {
-    margin: 16,
+    marginHorizontal: isSmallScreen ? 4 : 16,
+    marginBottom: 16,
+    marginTop: 16,
     borderRadius: 12,
     elevation: 4,
     shadowColor: '#000',
@@ -831,16 +845,15 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   profileButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: isSmallScreen ? 8 : 12,
+    paddingVertical: isSmallScreen ? 4 : 6,
     borderRadius: 6,
     backgroundColor: '#007bff',
-    borderWidth: 1,
-    borderColor: '#007bff',
+    marginRight: isSmallScreen ? 4 : 8,
   },
   profileText: {
-    color: '#ffffff',
-    fontSize: 14,
+    color: '#fff',
+    fontSize: isSmallScreen ? 12 : 14,
     fontWeight: '500',
   },
 });

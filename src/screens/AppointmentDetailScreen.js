@@ -5,12 +5,15 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
+  Dimensions,
 } from 'react-native';
 import { Button, Divider } from 'react-native-paper';
 import { tasksAPI, remindersAPI, TaskType } from '../services/api';
 import { showToast } from '../utils/toast';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 import MapPicker from '../components/MapPicker';
+
+const isSmallScreen = Dimensions.get('window').width < 400;
 
 const AppointmentDetailScreen = ({ navigation, route }) => {
   const { appointmentId, taskType } = route.params;
@@ -250,18 +253,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   errorText: {
-    fontSize: 16,
+    fontSize: isSmallScreen ? 13 : 16,
     color: '#666666',
   },
   heading: {
-    fontSize: 28,
+    fontSize: isSmallScreen ? 20 : 28,
     fontWeight: 'bold',
     color: '#222',
     marginBottom: 8,
     textAlign: 'center',
   },
   summary: {
-    fontSize: 18,
+    fontSize: isSmallScreen ? 14 : 18,
     color: '#555',
     marginBottom: 16,
     textAlign: 'center',
@@ -273,14 +276,14 @@ const styles = StyleSheet.create({
     borderRadius: 1,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: isSmallScreen ? 15 : 20,
     fontWeight: 'bold',
     color: '#007bff',
     marginBottom: 8,
     marginTop: 12,
   },
   description: {
-    fontSize: 16,
+    fontSize: isSmallScreen ? 13 : 16,
     color: '#333',
     marginBottom: 8,
   },
@@ -291,18 +294,18 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   customerName: {
-    fontSize: 16,
+    fontSize: isSmallScreen ? 13 : 16,
     fontWeight: '500',
     color: '#222',
     marginBottom: 4,
   },
   customerPhone: {
-    fontSize: 16,
+    fontSize: isSmallScreen ? 13 : 16,
     color: '#333',
     marginBottom: 4,
   },
   customerAddress: {
-    fontSize: 16,
+    fontSize: isSmallScreen ? 13 : 16,
     color: '#333',
   },
   detailsRow: {
@@ -311,12 +314,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   detailLabel: {
-    fontSize: 15,
+    fontSize: isSmallScreen ? 12 : 15,
     fontWeight: '500',
     color: '#222',
   },
   detailValue: {
-    fontSize: 15,
+    fontSize: isSmallScreen ? 12 : 15,
     color: '#555',
   },
   buttonContainer: {
@@ -354,7 +357,7 @@ const styles = StyleSheet.create({
     borderColor: '#e53e3e',
   },
   statusText: {
-    fontSize: 13,
+    fontSize: isSmallScreen ? 11 : 13,
     fontWeight: 'bold',
   },
   resolvedStatusText: {

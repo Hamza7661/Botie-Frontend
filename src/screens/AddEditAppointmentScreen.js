@@ -7,9 +7,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
+  Dimensions,
 } from 'react-native';
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const isSmallScreen = screenWidth < 400;
 import { TextInput, Button, Checkbox, Searchbar } from 'react-native-paper';
-import RNPickerSelect from 'react-native-picker-select';
 import { tasksAPI, remindersAPI, customerAPI, TaskType } from '../services/api';
 import Preloader from '../components/Preloader';
 import { showToast } from '../utils/toast';
@@ -52,6 +55,16 @@ const AddEditAppointmentScreen = ({ navigation, route }) => {
       loadAppointment();
     }
   }, [appointmentId, isEditing]);
+
+  useEffect(() => {
+    let title = '';
+    if (isEditing) {
+      title = taskType === TaskType.REMINDER ? 'Edit Reminder' : 'Edit Appointment';
+    } else {
+      title = taskType === TaskType.REMINDER ? 'Add Reminder' : 'Add Appointment';
+    }
+    navigation.setOptions({ title });
+  }, [isEditing, taskType, navigation]);
 
   const loadAppointment = async () => {
     try {
@@ -181,9 +194,7 @@ const AddEditAppointmentScreen = ({ navigation, route }) => {
         newErrors.description = String('Description is required');
       }
       
-      if (!formData.reminderDateTime) {
-        newErrors.reminderDateTime = String('Reminder date and time is required');
-      } else if (formData.reminderDateTime < new Date()) {
+      if (formData.reminderDateTime && formData.reminderDateTime < new Date()) {
         newErrors.reminderDateTime = String('Reminder date and time must be in the future');
       }
 
@@ -461,7 +472,7 @@ const AddEditAppointmentScreen = ({ navigation, route }) => {
           <View style={styles.formCard}>
             <View style={styles.formContent}>
               {!isEditing && (
-                <View style={{ alignItems: 'flex-end', marginBottom: 8 }}>
+                <View style={{ alignItems: 'center', marginBottom: 8 }}>
                   <MiniTabSelector
                     selectedTab={taskType}
                     onTabChange={handleMiniTabChange}
@@ -547,11 +558,12 @@ const AddEditAppointmentScreen = ({ navigation, route }) => {
                   <View style={styles.customerSearchContainer}>
                     <Text style={styles.searchLabel}>Search Existing Customer to Link</Text>
                     <Searchbar
-                      placeholder="Search customers by name or phone..."
+                      placeholder="Search by name or phone..."
                       onChangeText={handleCustomerSearch}
                       value={customerSearchQuery}
                       style={styles.customerSearchBar}
                       iconColor="#007bff"
+                      inputStyle={{ fontSize: isSmallScreen ? 14 : 16 }}
                       onClearIconPress={clearCustomerSelection}
                     />
                     
@@ -623,11 +635,26 @@ const AddEditAppointmentScreen = ({ navigation, route }) => {
                 <View style={styles.checkboxContainer}>
                   <Text style={styles.sectionTitle}>Status</Text>
                   <View style={styles.checkboxRow}>
-                    <Checkbox
-                      status={formData.isResolved ? 'checked' : 'unchecked'}
-                      onPress={() => updateFormData('isResolved', !formData.isResolved)}
-                      color="#007bff"
-                    />
+                    {Platform.OS === 'web' ? (
+                      <Checkbox
+                        status={formData.isResolved ? 'checked' : 'unchecked'}
+                        onPress={() => updateFormData('isResolved', !formData.isResolved)}
+                        color="#007bff"
+                      />
+                    ) : (
+                      <View style={{
+                        borderWidth: 2,
+                        borderColor: '#007bff',
+                        borderRadius: 4,
+                        padding: 2,
+                      }}>
+                        <Checkbox
+                          status={formData.isResolved ? 'checked' : 'unchecked'}
+                          onPress={() => updateFormData('isResolved', !formData.isResolved)}
+                          color="#007bff"
+                        />
+                      </View>
+                    )}
                     <Text style={styles.checkboxLabel}>
                       Mark as resolved
                     </Text>
@@ -674,7 +701,7 @@ const styles = StyleSheet.create({
     flex: 1
   },
   scrollContent: {
-    padding: 10,
+    padding: isSmallScreen ? 8 : 10,
     alignItems: 'center',
   },
   formCard: {
@@ -687,30 +714,31 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     width: '100%',
     maxWidth: 600,
-    padding: 24,
+    padding: isSmallScreen ? 16 : 24,
   },
   formContent: {
     width: '100%',
   },
   title: {
-    fontSize: 24,
+    fontSize: isSmallScreen ? 20 : 24,
     fontWeight: 'bold',
     color: '#333333',
-    marginBottom: 20,
+    marginBottom: isSmallScreen ? 16 : 20,
     textAlign: 'center',
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: isSmallScreen ? 16 : 18,
     fontWeight: 'bold',
     color: '#333333',
-    marginTop: 20,
-    marginBottom: 12,
+    marginTop: isSmallScreen ? 16 : 20,
+    marginBottom: isSmallScreen ? 8 : 12,
   },
   inputContainer: {
-    marginBottom: 16,
+    marginBottom: isSmallScreen ? 12 : 16,
   },
   input: {
     backgroundColor: '#ffffff',
+    fontSize: isSmallScreen ? 14 : 16,
   },
   disabledInput: {
     backgroundColor: '#f8f9fa',
@@ -722,20 +750,20 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: '#e53e3e',
-    fontSize: 12,
-    marginTop: 4,
+    fontSize: isSmallScreen ? 11 : 12,
+    marginTop: isSmallScreen ? 3 : 4,
     marginLeft: 4,
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 20,
-    gap: 12,
+    marginTop: isSmallScreen ? 16 : 20,
+    gap: isSmallScreen ? 8 : 12,
   },
   button: {
-    minWidth: 120,
-    maxWidth: 200,
-    marginHorizontal: 5,
+    minWidth: isSmallScreen ? 100 : 120,
+    maxWidth: isSmallScreen ? 150 : 200,
+    marginHorizontal: isSmallScreen ? 3 : 5,
   },
   cancelButton: {
     borderColor: '#666666',
@@ -745,27 +773,27 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   checkboxContainer: {
-    marginTop: 20,
-    marginBottom: 10,
+    marginTop: isSmallScreen ? 16 : 20,
+    marginBottom: isSmallScreen ? 8 : 10,
   },
   checkboxRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: isSmallScreen ? 6 : 8,
   },
   checkboxLabel: {
-    fontSize: 16,
+    fontSize: isSmallScreen ? 14 : 16,
     color: '#333333',
     marginLeft: 8,
   },
   customerSearchContainer: {
-    marginBottom: 20,
+    marginBottom: isSmallScreen ? 16 : 20,
   },
   searchLabel: {
-    fontSize: 16,
+    fontSize: isSmallScreen ? 14 : 16,
     fontWeight: 'bold',
     color: '#333333',
-    marginBottom: 8,
+    marginBottom: isSmallScreen ? 6 : 8,
   },
   customerSearchBar: {
     backgroundColor: '#ffffff',
@@ -788,10 +816,10 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   dropdownItem: {
-    padding: 12,
+    padding: isSmallScreen ? 10 : 12,
   },
   dropdownText: {
-    fontSize: 16,
+    fontSize: isSmallScreen ? 14 : 16,
     color: '#333333',
   },
   dropdownSubtext: {
@@ -804,15 +832,15 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   selectedCustomerText: {
-    fontSize: 16,
+    fontSize: isSmallScreen ? 14 : 16,
     color: '#333333',
     marginRight: 8,
   },
   clearSelectionButton: {
-    padding: 8,
+    padding: isSmallScreen ? 6 : 8,
   },
   clearSelectionText: {
-    fontSize: 16,
+    fontSize: isSmallScreen ? 14 : 16,
     color: '#007bff',
   },
   autoFillNote: {
