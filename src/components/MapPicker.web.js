@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import LocationSearch from './LocationSearch';
 import * as Location from 'expo-location';
+import { isGooglePlacesAvailable, GOOGLE_PLACES_API_KEY } from '../config/google';
 
 // MapController to force map to center on marker
 function MapController({ center }) {
@@ -79,6 +80,8 @@ export default function MapPicker({ value, onChange, readOnly, initialLocationNa
               placeholder="Search for a location..."
               initialValue={initialLocationName}
               initialCoordinates={initialCoordinatesRef.current}
+              useGooglePlaces={isGooglePlacesAvailable()}
+              googleApiKey={GOOGLE_PLACES_API_KEY}
             />
           </div>
         )}
@@ -107,6 +110,8 @@ export default function MapPicker({ value, onChange, readOnly, initialLocationNa
             placeholder="Search for a location..."
             initialValue={initialLocationName}
             initialCoordinates={initialCoordinatesRef.current}
+            useGooglePlaces={isGooglePlacesAvailable()}
+            googleApiKey={GOOGLE_PLACES_API_KEY}
           />
         </div>
       )}

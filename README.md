@@ -58,7 +58,11 @@ A modern, responsive appointment management application built with React Native 
 3. **Environment Setup**
    Create a `.env` file in the root directory:
    ```env
+   # API Base URL
    EXPO_PUBLIC_API_BASE_URL=http://localhost:5000/api
+   
+   # Google Places API Key (for location search and autocomplete)
+   EXPO_PUBLIC_GOOGLE_API_KEY=your_google_places_api_key_here
    ```
 
 4. **Start the development server**
@@ -110,12 +114,43 @@ RENDER_EXTERNAL_URL=https://your-app-name.onrender.com
 
 # API Base URL
 EXPO_PUBLIC_API_BASE_URL=http://localhost:5000/api
+
+# Google Places API Key (for location search and autocomplete)
+EXPO_PUBLIC_GOOGLE_API_KEY=your_google_places_api_key_here
 ```
 
 #### Render Deployment
 In your Render dashboard, set these environment variables:
 - `RENDER_EXTERNAL_URL`: Your Render app URL (e.g., `https://your-app-name.onrender.com`)
 - `EXPO_PUBLIC_API_BASE_URL`: Your production API URL
+- `EXPO_PUBLIC_GOOGLE_API_KEY`: Your Google Places API key
+
+### Google Places API Setup
+
+The app uses Google Places API for location search and autocomplete functionality in the reminder screen. To set this up:
+
+1. **Get a Google Places API Key**:
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new project or select an existing one
+   - Enable the "Places API" and "Maps JavaScript API"
+   - Create credentials (API Key)
+   - Restrict the API key to your domain for security
+
+2. **Add the API Key**:
+   - Add `EXPO_PUBLIC_GOOGLE_API_KEY=your_api_key_here` to your `.env` file
+   - For production, add the same environment variable to your deployment platform
+
+3. **Features Enabled**:
+   - Location search with autocomplete using Google Places API
+   - Address suggestions and place details
+   - Automatic coordinate extraction
+   - Dynamic country detection based on user's location
+   - Results automatically restricted to user's current country
+
+4. **Testing Your Setup**:
+   - The app will log Google Places API status to the console on startup
+   - You can temporarily add the `GooglePlacesTest` component to any screen to test functionality
+   - Check the browser console or React Native debugger for detailed status information
 
 ### API Configuration
 

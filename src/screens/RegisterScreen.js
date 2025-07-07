@@ -15,6 +15,8 @@ import { showToast } from '../utils/toast';
 import Preloader from '../components/Preloader';
 import { validatePhone } from '../utils/validation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import CustomPhoneInput from '../components/PhoneInput';
+import { getFullE164Phone } from '../components/PhoneInput';
 
 const RegisterScreen = ({ navigation }) => {
   const screenWidth = Dimensions.get('window').width;
@@ -40,6 +42,7 @@ const RegisterScreen = ({ navigation }) => {
     confirmPassword: '',
     profession: '',
     professionDescription: '',
+    selectedCountry: null,
   });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -143,7 +146,11 @@ const RegisterScreen = ({ navigation }) => {
 
     setLoading(true);
     try {
-      const { confirmPassword, ...registerData } = formData;
+      const { confirmPassword, selectedCountry, ...registerData } = formData;
+      // Concatenate country code with phone number before sending to API
+      const country = selectedCountry || { code: 'US', dial_code: '+1', flag: '🇺🇸', name: 'United States' };
+      const fullPhoneNumber = getFullE164Phone(formData.phoneNumber, country);
+      registerData.phoneNumber = fullPhoneNumber;
       const result = await register(registerData);
       
       if (result.success) {
@@ -285,10 +292,18 @@ const RegisterScreen = ({ navigation }) => {
                 ref: emailRef
               })}
 
-              {renderInput('phoneNumber', 'Phone Number', {
-                keyboardType: 'phone-pad',
-                ref: phoneRef
-              })}
+              <View style={[styles.inputContainer, {zIndex: 10}]}>
+                <CustomPhoneInput
+                  value={formData.phoneNumber}
+                  onChangeText={(text, country) => {
+                    updateFormData('phoneNumber', text);
+                    updateFormData('selectedCountry', country);
+                  }}
+                  error={errors.phoneNumber}
+                  placeholder="Enter phone number"
+                  selectedCountry={formData.selectedCountry}
+                />
+              </View>
 
               {renderInput('address', 'Address', {
                 multiline: true,

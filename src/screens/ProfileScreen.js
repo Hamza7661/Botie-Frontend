@@ -14,6 +14,8 @@ import { userAPI, authAPI } from '../services/api';
 import { showToast } from '../utils/toast';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 import { validatePhone } from '../utils/validation';
+import CustomPhoneInput from '../components/PhoneInput';
+import { getFullE164Phone } from '../components/PhoneInput';
 
 const ProfileScreen = ({ navigation }) => {
   const { user, updateUser, logout } = useAuth();
@@ -301,6 +303,7 @@ const ProfileScreen = ({ navigation }) => {
     address: user?.address || '',
     profession: user?.profession || '',
     professionDescription: user?.professionDescription || '',
+    selectedCountry: user?.selectedCountry || null,
   });
   const [editErrors, setEditErrors] = useState({});
   const [editTouched, setEditTouched] = useState({});
@@ -417,7 +420,12 @@ const ProfileScreen = ({ navigation }) => {
 
     setLoading(true);
     try {
-      const response = await userAPI.updateUser(user._id, editForm);
+      const { selectedCountry, ...updateData } = editForm;
+      // Concatenate country code with phone number before sending to API
+      const country = editForm.selectedCountry || { code: 'US', dial_code: '+1', flag: '🇺🇸', name: 'United States' };
+      const fullPhoneNumber = getFullE164Phone(editForm.phoneNumber, country);
+      updateData.phoneNumber = fullPhoneNumber;
+      const response = await userAPI.updateUser(user._id, updateData);
       updateUser(response.data.data);
       setFetchedUser(response.data.data);
       setEditMode(false);
@@ -648,27 +656,17 @@ const ProfileScreen = ({ navigation }) => {
               <Text style={styles.errorText}>{editErrors.email}</Text>
             )}
           </View>
-          <View style={styles.inputContainer}>
-            <TextInput
-              label="Phone Number"
+          <View style={{...styles.inputContainer, zIndex: 10}}>
+            <CustomPhoneInput
               value={editForm.phoneNumber}
-              onChangeText={(value) => handleEditFieldChange('phoneNumber', value)}
-              mode="outlined"
-              keyboardType="phone-pad"
-              style={styles.input}
-              theme={{
-                colors: {
-                  primary: '#007bff',
-                  background: '#ffffff',
-                  placeholder: '#666666',
-                },
+              onChangeText={(text, country) => {
+                handleEditFieldChange('phoneNumber', text);
+                handleEditFieldChange('selectedCountry', country);
               }}
-              onBlur={() => handleEditFieldBlur('phoneNumber')}
-              error={!!(editErrors.phoneNumber && editTouched.phoneNumber)}
+              error={editErrors.phoneNumber}
+              placeholder="Enter phone number"
+              selectedCountry={editForm.selectedCountry}
             />
-            {editErrors.phoneNumber && editTouched.phoneNumber && (
-              <Text style={styles.errorText}>{editErrors.phoneNumber}</Text>
-            )}
           </View>
           <View style={styles.inputContainer}>
             <TextInput

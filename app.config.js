@@ -19,7 +19,8 @@ export default {
       bundler: "metro"
     },
     extra: {
-      apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL || "http://localhost:5000/api"
+      apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL || "http://localhost:5000/api",
+      googleApiKey: process.env.EXPO_PUBLIC_GOOGLE_API_KEY
     }
   }
 }; 

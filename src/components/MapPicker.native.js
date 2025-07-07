@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import LocationSearch from './LocationSearch';
 import * as Location from 'expo-location';
+import { isGooglePlacesAvailable, GOOGLE_PLACES_API_KEY } from '../config/google';
 
 export default function MapPicker({ value, onChange }) {
   const defaultLat = 31.5204, defaultLng = 74.3587;
@@ -151,6 +152,8 @@ export default function MapPicker({ value, onChange }) {
           <LocationSearch 
             onLocationSelect={handleLocationSelect}
             placeholder="Search for a location..."
+            useGooglePlaces={isGooglePlacesAvailable()}
+            googleApiKey={GOOGLE_PLACES_API_KEY}
           />
         </View>
         <View style={{ height: 300, width: '100%', justifyContent: 'center', alignItems: 'center' }}>
@@ -166,6 +169,8 @@ export default function MapPicker({ value, onChange }) {
         <LocationSearch 
           onLocationSelect={handleLocationSelect}
           placeholder="Search for a location..."
+          useGooglePlaces={isGooglePlacesAvailable()}
+          googleApiKey={GOOGLE_PLACES_API_KEY}
         />
       </View>
       <View style={{ height: 300, width: '100%', position: 'relative' }}>

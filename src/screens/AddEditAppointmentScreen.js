@@ -17,10 +17,13 @@ import { tasksAPI, remindersAPI, customerAPI, TaskType } from '../services/api';
 import Preloader from '../components/Preloader';
 import { showToast } from '../utils/toast';
 import { validatePhone } from '../utils/validation';
+import CustomPhoneInput from '../components/PhoneInput';
 import MapPicker from '../components/MapPicker';
 import DateTimePicker from '../components/DateTimePicker';
 import { MiniTabSelector } from '../components/TabSelector';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { isGooglePlacesAvailable, GOOGLE_PLACES_API_KEY } from '../config/google';
+import { getFullE164Phone } from '../components/PhoneInput';
 
 const AddEditAppointmentScreen = ({ navigation, route }) => {
   const { appointmentId, isEditing, taskType } = route.params || {};
@@ -36,6 +39,7 @@ const AddEditAppointmentScreen = ({ navigation, route }) => {
       name: '',
       address: '',
       phoneNumber: '',
+      selectedCountry: null,
     },
   });
 
@@ -105,6 +109,7 @@ const AddEditAppointmentScreen = ({ navigation, route }) => {
             name: item.customer?.name || '',
             address: item.customer?.address || '',
             phoneNumber: item.customer?.phoneNumber || '',
+            selectedCountry: null,
           },
         });
       }
@@ -157,6 +162,7 @@ const AddEditAppointmentScreen = ({ navigation, route }) => {
         name: customer.name || '',
         address: customer.address || '',
         phoneNumber: customer.phoneNumber || '',
+        selectedCountry: null,
       },
     }));
     
@@ -181,6 +187,7 @@ const AddEditAppointmentScreen = ({ navigation, route }) => {
         name: '',
         address: '',
         phoneNumber: '',
+        selectedCountry: null,
       },
     }));
   };
@@ -314,7 +321,7 @@ const AddEditAppointmentScreen = ({ navigation, route }) => {
         const reminderData = {
           description: formData.description,
           locationName: formData.summary,
-          reminderDateTime: formData.reminderDateTime ? formData.reminderDateTime.toISOString() : null,
+          reminderDateTime: formData.reminderDateTime ? formData.reminderDateTime.toISOString() : null, // Already in UTC
         };
 
         // Add coordinates if available
@@ -343,6 +350,17 @@ const AddEditAppointmentScreen = ({ navigation, route }) => {
           description: formData.description,
           isResolved: formData.isResolved,
           customer: formData.customer,
+        };
+        
+        // Concatenate country code with phone number before sending to API
+        const country = formData.customer.selectedCountry || { code: 'US', dial_code: '+1', flag: '🇺🇸', name: 'United States' };
+        const fullPhoneNumber = getFullE164Phone(formData.customer.phoneNumber, country);
+        
+        // Create customer data without selectedCountry (API doesn't need it)
+        const { selectedCountry, ...customerData } = formData.customer;
+        appointmentData.customer = {
+          ...customerData,
+          phoneNumber: fullPhoneNumber,
         };
         
         console.log('Appointment data to save:', appointmentData);
@@ -423,6 +441,25 @@ const AddEditAppointmentScreen = ({ navigation, route }) => {
       errorField = 'customerPhone';
     } else {
       errorField = `customer${field.charAt(0).toUpperCase() + field.slice(1)}`;
+    }
+    
+    // Special handling for phone number input
+    if (field === 'phoneNumber') {
+      return (
+        <View style={{...styles.inputContainer, zIndex: 10}}>
+          <CustomPhoneInput
+            value={value}
+            onChangeText={(text, country) => {
+              updateFormData(`customer.${field}`, text);
+              updateFormData('customer.selectedCountry', country);
+            }}
+            error={errors[errorField]}
+            placeholder="Enter customer phone number"
+            disabled={options.disabled}
+            selectedCountry={formData.customer.selectedCountry}
+          />
+        </View>
+      );
     }
     
     return (
