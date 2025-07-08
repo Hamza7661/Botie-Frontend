@@ -18,6 +18,7 @@ export default {
       }
     },
     android: {
+      package: "com.botie.app",
       adaptiveIcon: {
         backgroundColor: "#007bff"
       },
