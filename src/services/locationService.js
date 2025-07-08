@@ -60,7 +60,13 @@ class LocationService {
       if (Platform.OS !== 'web') {
         const backgroundPermission = await this.requestBackgroundLocationPermission();
         if (backgroundPermission !== 'granted') {
-          console.log('Background location permission not granted, using foreground tracking only');
+          // Silently handle - no console logs for iOS Expo Go
+          const isExpoGo = Constants.appOwnership === 'expo';
+          const isIOS = Platform.OS === 'ios';
+          
+          if (!(isExpoGo && isIOS)) {
+            console.log('Background location permission not granted, using foreground tracking only');
+          }
         }
       }
 
@@ -78,7 +84,6 @@ class LocationService {
       }
 
       this.isTracking = true;
-      console.log('Location tracking started successfully');
       
       // Store tracking state
       await AsyncStorage.setItem('locationTrackingActive', 'true');
@@ -150,11 +155,29 @@ class LocationService {
       if (Platform.OS === 'web') {
         return 'granted'; // Not applicable on web
       } else {
+        // Check if we're on iOS with Expo Go (which doesn't support custom permissions)
+        const isExpoGo = Constants.appOwnership === 'expo';
+        const isIOS = Platform.OS === 'ios';
+        
+        if (isExpoGo && isIOS) {
+          // Silently handle iOS Expo Go limitation
+          return 'denied';
+        }
+        
         const { status } = await Location.requestBackgroundPermissionsAsync();
         return status;
       }
     } catch (error) {
-      console.error('Error requesting background location permission:', error);
+      // Silently handle iOS permission errors
+      if (Platform.OS === 'ios' && error.message && error.message.includes('NSLocation*UsageDescription')) {
+        return 'denied';
+      }
+      
+      // Only log non-iOS errors
+      if (Platform.OS !== 'ios') {
+        console.error('Error requesting background location permission:', error);
+      }
+      
       return 'denied';
     }
   }
@@ -368,7 +391,6 @@ class LocationService {
       // Check if background location is enabled
       const backgroundPermission = await Location.getBackgroundPermissionsAsync();
       if (backgroundPermission.status !== 'granted') {
-        console.log('Background location permission not granted');
         return;
       }
 
@@ -465,7 +487,7 @@ class LocationService {
       });
 
       if (response.ok) {
-        console.log('Location update sent successfully:', { latitude, longitude });
+        // Location update sent successfully
       } else {
         const errorData = await response.json().catch(() => ({}));
         console.error('Failed to send location update:', response.status, errorData);

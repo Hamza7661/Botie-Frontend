@@ -305,15 +305,13 @@ const AddEditAppointmentScreen = ({ navigation, route }) => {
       });
     }
 
-    console.log('Form validation - coordinates:', formData.coordinates);
-    console.log('Form validation - summary:', formData.summary);
+    // Form validation check
     
     if (!validateForm()) {
-      console.log('Form validation failed');
       return;
     }
 
-    console.log('Form validation passed, proceeding with API call');
+    // Form validation passed, proceeding with API call
     setLoading(true);
     try {
       if (taskType === TaskType.REMINDER) {
@@ -329,15 +327,15 @@ const AddEditAppointmentScreen = ({ navigation, route }) => {
           reminderData.coordinates = formData.coordinates;
         }
 
-        console.log('Reminder data to save:', reminderData);
+        // Reminder data prepared
 
         if (isEditing) {
-          console.log('Updating reminder with ID:', appointmentId);
+          // Updating reminder
           const response = await remindersAPI.updateReminder(appointmentId, reminderData);
           const message = response?.data?.message || 'Reminder updated successfully';
           showToast.success(String(message));
         } else {
-          console.log('Creating new reminder');
+          // Creating new reminder
           const response = await remindersAPI.createReminder(reminderData);
           const message = response?.data?.message || 'Reminder created successfully';
           showToast.success(String(message));
@@ -543,18 +541,17 @@ const AddEditAppointmentScreen = ({ navigation, route }) => {
                   <MapPicker
                     value={formData.coordinates}
                     onChange={locationData => {
-                      console.log('MapPicker onChange - locationData:', locationData);
-                      console.log('MapPicker onChange - current formData.coordinates:', formData.coordinates);
+                          // MapPicker onChange - locationData and coordinates updated
                       
                       if (!locationData) {
-                        console.log('MapPicker - clearing coordinates');
+                        // MapPicker - clearing coordinates
                         setFormData({
                           ...formData,
                           coordinates: null,
                           summary: ''
                         });
                       } else {
-                        console.log('MapPicker - setting coordinates:', locationData);
+                        // MapPicker - setting coordinates
                         setFormData({ 
                           ...formData, 
                           coordinates: {
