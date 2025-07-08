@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authAPI } from '../services/api';
 import { authEvents } from '../services/api';
 import { showToast } from '../utils/toast';
+import locationService from '../services/locationService';
 
 const AuthContext = createContext();
 
@@ -22,6 +23,9 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     loadStoredAuth();
     
+    // Initialize location service
+    locationService.initialize();
+    
     // Subscribe to auth events
     const unsubscribe = authEvents.subscribe((event) => {
       if (event === 'unauthorized') {
@@ -33,6 +37,25 @@ export const AuthProvider = ({ children }) => {
       unsubscribe();
     };
   }, []);
+
+  // Handle location tracking based on authentication status
+  useEffect(() => {
+    const handleLocationTracking = async () => {
+      if (token && user) {
+        // User is logged in, start location tracking
+        try {
+          await locationService.startLocationTracking();
+        } catch (error) {
+          console.log('Location tracking not started:', error.message);
+        }
+      } else {
+        // User is logged out, stop location tracking
+        locationService.stopLocationTracking();
+      }
+    };
+
+    handleLocationTracking();
+  }, [token, user]);
 
   const loadStoredAuth = async () => {
     try {
@@ -54,6 +77,9 @@ export const AuthProvider = ({ children }) => {
 
   const forceLogout = async () => {
     try {
+      // Stop location tracking before force logout
+      locationService.stopLocationTracking();
+      
       await AsyncStorage.removeItem('token');
       await AsyncStorage.removeItem('user');
       setToken(null);
@@ -138,6 +164,9 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
+      // Stop location tracking before logout
+      locationService.stopLocationTracking();
+      
       await AsyncStorage.removeItem('token');
       await AsyncStorage.removeItem('user');
       setToken(null);

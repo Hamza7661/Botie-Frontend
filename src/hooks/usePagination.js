@@ -68,8 +68,11 @@ export const usePagination = (fetchFunction, initialPage = 1, limit = 10) => {
       setHasMore(page < total);
     } catch (error) {
       if (error.name !== 'AbortError') {
-        setError(error);
-        console.error('Pagination error:', error);
+        // Don't set error for 401 unauthorized - let the API interceptor handle it
+        if (error.response?.status !== 401) {
+          setError(error);
+          console.error('Pagination error:', error);
+        }
       }
     } finally {
       setLoading(false);

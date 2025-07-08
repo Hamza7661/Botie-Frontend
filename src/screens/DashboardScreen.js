@@ -220,11 +220,9 @@ const DashboardScreen = ({ navigation }) => {
   // Handle errors
   useEffect(() => {
     if (error) {
-      // Check if it's a 401 unauthorized error
-      if (error.response?.status === 401) {
-        showToast.error('Session expired. Please login to continue.');
-      } else {
-      showToast.error('Failed to load appointments');
+      // Don't show error toast for 401 - the AuthContext will handle it
+      if (error.response?.status !== 401) {
+        showToast.error('Failed to load appointments');
       }
     }
   }, [error]);

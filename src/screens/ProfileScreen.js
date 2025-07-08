@@ -8,7 +8,7 @@ import {
   Modal,
   Dimensions,
 } from 'react-native';
-import { Card, Button, TextInput, Divider } from 'react-native-paper';
+import { Card, Button, TextInput, Divider, Switch } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import { userAPI, authAPI } from '../services/api';
 import { showToast } from '../utils/toast';
@@ -16,6 +16,7 @@ import ConfirmationDialog from '../components/ConfirmationDialog';
 import { validatePhone } from '../utils/validation';
 import CustomPhoneInput from '../components/PhoneInput';
 import { getFullE164Phone } from '../components/PhoneInput';
+import locationService from '../services/locationService';
 
 const ProfileScreen = ({ navigation }) => {
   const { user, updateUser, logout } = useAuth();
@@ -27,6 +28,8 @@ const ProfileScreen = ({ navigation }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [fetchedUser, setFetchedUser] = useState(user);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [locationStats, setLocationStats] = useState(null);
+  const [locationToggleLoading, setLocationToggleLoading] = useState(false);
 
   const screenWidth = Dimensions.get('window').width;
   const isLargeScreen = screenWidth > 768;
@@ -294,6 +297,25 @@ const ProfileScreen = ({ navigation }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editMode]);
 
+  // Load location tracking stats
+  useEffect(() => {
+    const loadLocationStats = async () => {
+      try {
+        const stats = await locationService.getTrackingStats();
+        setLocationStats(stats);
+      } catch (error) {
+        console.error('Error loading location stats:', error);
+      }
+    };
+
+    loadLocationStats();
+    
+    // Update stats every 5 seconds
+    const interval = setInterval(loadLocationStats, 5000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
   // Edit profile form
   const [editForm, setEditForm] = useState({
     firstname: user?.firstname || '',
@@ -472,14 +494,38 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   const confirmDeleteAccount = async () => {
-            setLoading(true);
-            try {
-              await userAPI.deleteUser(user._id);
-              logout();
-            } catch (error) {
+    setLoading(true);
+    try {
+      await userAPI.deleteUser(user._id);
+      logout();
+    } catch (error) {
       showToast.error(error.response?.data?.message || 'Failed to delete account');
-              setLoading(false);
-            }
+    } finally {
+      setLoading(false);
+      setShowDeleteConfirmation(false);
+    }
+  };
+
+  const handleLocationToggle = async (enabled) => {
+    setLocationToggleLoading(true);
+    try {
+      if (enabled) {
+        await locationService.enableUserTracking();
+        showToast.success('Location tracking enabled');
+      } else {
+        await locationService.disableUserTracking();
+        showToast.success('Location tracking disabled');
+      }
+      
+      // Refresh location stats
+      const stats = await locationService.getTrackingStats();
+      setLocationStats(stats);
+    } catch (error) {
+      console.error('Error toggling location tracking:', error);
+      showToast.error('Failed to update location tracking settings');
+    } finally {
+      setLocationToggleLoading(false);
+    }
   };
 
   const renderProfileInfo = () => (
@@ -913,6 +959,96 @@ const ProfileScreen = ({ navigation }) => {
                       Delete Account
                     </Text>
                   </TouchableOpacity>
+                </Card.Content>
+              </Card>
+            </View>
+
+            {/* Location Tracking Status */}
+            <View style={styles.centeredContainer}>
+              <Card style={styles.profileCard}>
+                <Card.Content>
+                  <Text style={styles.sectionTitle}>Location Tracking</Text>
+                  {locationStats ? (
+                    <>
+                      {/* User Toggle Control */}
+                      <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>Enable Location Tracking:</Text>
+                        <Switch
+                          value={locationStats.userPreference?.enabled}
+                          onValueChange={handleLocationToggle}
+                          disabled={locationToggleLoading}
+                          color="#007bff"
+                        />
+                      </View>
+                      
+                      <Divider style={styles.dividerCompact} />
+                      
+                      <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>Status:</Text>
+                        <Text style={[
+                          styles.infoValue, 
+                          { color: locationStats.isTracking ? '#28a745' : '#dc3545' }
+                        ]}>
+                          {locationStats.isTracking ? 'Active' : 'Inactive'}
+                        </Text>
+                      </View>
+                      
+                      <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>Foreground Permission:</Text>
+                        <Text style={[
+                          styles.infoValue, 
+                          { color: locationStats.permissionStatus?.foreground ? '#28a745' : '#dc3545' }
+                        ]}>
+                          {locationStats.permissionStatus?.foreground ? 'Granted' : 'Denied'}
+                        </Text>
+                      </View>
+                      
+                      {locationStats.platform !== 'web' && (
+                        <View style={styles.infoRow}>
+                          <Text style={styles.infoLabel}>Background Permission:</Text>
+                          <Text style={[
+                            styles.infoValue, 
+                            { color: locationStats.permissionStatus?.background ? '#28a745' : '#dc3545' }
+                          ]}>
+                            {locationStats.permissionStatus?.background ? 'Granted' : 'Denied'}
+                          </Text>
+                        </View>
+                      )}
+                      
+                      {locationStats.lastLocation && 
+                       locationStats.lastLocation.coords && 
+                       typeof locationStats.lastLocation.coords.latitude === 'number' && 
+                       typeof locationStats.lastLocation.coords.longitude === 'number' && (
+                        <View style={styles.infoRow}>
+                          <Text style={styles.infoLabel}>Last Location:</Text>
+                          <Text style={styles.infoValue}>
+                            {locationStats.lastLocation.coords.latitude.toFixed(4)}, {locationStats.lastLocation.coords.longitude.toFixed(4)}
+                          </Text>
+                        </View>
+                      )}
+                      
+                      <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>Update Interval:</Text>
+                        <Text style={styles.infoValue}>
+                          {locationStats.updateInterval / 1000}s
+                        </Text>
+                      </View>
+                      
+                      {locationStats.platform !== 'web' && (
+                        <View style={styles.infoRow}>
+                          <Text style={styles.infoLabel}>Background Tracking:</Text>
+                          <Text style={[
+                            styles.infoValue, 
+                            { color: locationStats.hasBackgroundSubscription ? '#28a745' : '#dc3545' }
+                          ]}>
+                            {locationStats.hasBackgroundSubscription ? 'Active' : 'Inactive'}
+                          </Text>
+                        </View>
+                      )}
+                    </>
+                  ) : (
+                    <Text style={styles.infoValue}>Loading location status...</Text>
+                  )}
                 </Card.Content>
               </Card>
             </View>
