@@ -90,9 +90,7 @@ export const WebSocketProvider = ({ children }) => {
       if (data.data?.type === 'reminder_triggered') {
         console.log('Reminder triggered:', data.data.data);
         
-        // Show prominent alert/popup to user
-        showToast.success(`⏰ Reminder: ${data.data.data.description}`);
-        
+        // Silent handling - no toast notifications
         // You can add more notification logic here like:
         // - Play notification sound
         // - Show modal/popup
