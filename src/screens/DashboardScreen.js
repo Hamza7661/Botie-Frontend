@@ -20,6 +20,7 @@ import { usePagination } from '../hooks/usePagination';
 import { showToast } from '../utils/toast';
 import { TabStorage } from '../utils/storage';
 import TabSelector from '../components/TabSelector';
+import locationService from '../services/locationService';
 
 const { width: screenWidth } = Dimensions.get('window');
 const isSmallScreen = screenWidth < 400;
@@ -152,6 +153,19 @@ const DashboardScreen = ({ navigation }) => {
       setSelectedTab(storedTab);
     };
     loadSelectedTab();
+  }, []);
+
+  // Request location permission on dashboard load
+  useEffect(() => {
+    const requestLocationPermission = async () => {
+      try {
+        await locationService.requestLocationPermission();
+      } catch (error) {
+        // Silently handle permission request errors
+      }
+    };
+    
+    requestLocationPermission();
   }, []);
 
   // Initial data load

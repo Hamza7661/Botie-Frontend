@@ -510,8 +510,12 @@ const ProfileScreen = ({ navigation }) => {
     setLocationToggleLoading(true);
     try {
       if (enabled) {
-        await locationService.enableUserTracking();
-        showToast.success('Location tracking enabled');
+        const success = await locationService.enableUserTracking();
+        if (success) {
+          showToast.success('Location tracking enabled');
+        } else {
+          showToast.error('Location permission denied');
+        }
       } else {
         await locationService.disableUserTracking();
         showToast.success('Location tracking disabled');

@@ -120,27 +120,20 @@ class LocationService {
   async requestLocationPermission() {
     try {
       if (Platform.OS === 'web') {
-        // Web implementation
-        if ('permissions' in navigator) {
-          const result = await navigator.permissions.query({ name: 'geolocation' });
-          this.permissionStatus = result.state;
-          
-          // If permission is not granted, try to get current position to trigger permission request
-          if (result.state === 'prompt') {
-            try {
-              await this.getCurrentPosition();
-              // Re-query permission status after user interaction
-              const updatedResult = await navigator.permissions.query({ name: 'geolocation' });
-              this.permissionStatus = updatedResult.state;
-              return updatedResult.state;
-            } catch (positionError) {
-              return 'denied';
-            }
+        // Web implementation - try to get current position directly first
+        // This should trigger the permission dialog on Safari iOS
+        try {
+          await this.getCurrentPosition();
+          return 'granted';
+        } catch (positionError) {
+          // If getCurrentPosition fails, try the permissions API as fallback
+          if ('permissions' in navigator) {
+            const result = await navigator.permissions.query({ name: 'geolocation' });
+            this.permissionStatus = result.state;
+            return result.state;
           }
-          
-          return result.state;
+          return 'denied';
         }
-        return 'granted';
       } else {
         // React Native implementation
         const { status } = await Location.requestForegroundPermissionsAsync();
@@ -246,10 +239,16 @@ class LocationService {
   async enableUserTracking() {
     try {
       await AsyncStorage.removeItem('userLocationTrackingDisabled');
-      console.log('User enabled location tracking');
       
       // If we're not currently tracking, start tracking
       if (!this.isTracking) {
+        // On web, request permission when user tries to enable tracking
+        if (Platform.OS === 'web') {
+          const permission = await this.requestLocationPermission();
+          if (permission !== 'granted') {
+            return false; // Permission denied
+          }
+        }
         await this.startLocationTracking();
       }
       
@@ -265,7 +264,6 @@ class LocationService {
   async disableUserTracking() {
     try {
       await AsyncStorage.setItem('userLocationTrackingDisabled', 'true');
-      console.log('User disabled location tracking');
       
       // Stop current tracking
       this.stopLocationTracking();
@@ -296,11 +294,6 @@ class LocationService {
    */
   async initialize() {
     try {
-      // On web, request location permission on app load
-      if (Platform.OS === 'web') {
-        await this.requestLocationPermission();
-      }
-      
       // Check if tracking was previously active
       const wasActive = await AsyncStorage.getItem('locationTrackingActive');
       const userDisabled = await this.isUserTrackingDisabled();
@@ -419,9 +412,6 @@ class LocationService {
       );
 
       // Note: Background fetch is deprecated, using background location tracking instead
-      console.log('Background location tracking started (background fetch disabled)');
-
-      console.log('Background location tracking started');
     } catch (error) {
       // Silently handle background tracking errors
     }
@@ -468,7 +458,6 @@ class LocationService {
     try {
       const authToken = await this.getAuthToken();
       if (!authToken) {
-        console.log('No auth token available, skipping location update');
         return;
       }
 
