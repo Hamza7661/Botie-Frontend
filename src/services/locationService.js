@@ -180,7 +180,15 @@ class LocationService {
           const result = await navigator.permissions.query({ name: 'geolocation' });
           return result.state === 'granted';
         }
-        return true;
+        
+        // Fallback for browsers that don't support permissions API (like Safari iOS)
+        // Try to get current position to check if permission is granted
+        try {
+          await this.getCurrentPosition();
+          return true;
+        } catch (positionError) {
+          return false;
+        }
       } else {
         const { status } = await Location.getForegroundPermissionsAsync();
         return status === 'granted';
