@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }) => {
         try {
           await locationService.startLocationTracking();
         } catch (error) {
-          console.log('Location tracking not started:', error.message);
+          // Silently handle location tracking errors
         }
       } else {
         // User is logged out, stop location tracking

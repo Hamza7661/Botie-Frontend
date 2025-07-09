@@ -36,24 +36,20 @@ class LocationService {
    */
   async startLocationTracking() {
     if (this.isTracking) {
-      console.log('Location tracking already active');
       return;
     }
 
     // Check if user has disabled tracking
     const userDisabled = await this.isUserTrackingDisabled();
     if (userDisabled) {
-      console.log('Location tracking disabled by user');
       return;
     }
 
     try {
-      console.log('Starting location tracking...');
-      
       // Request location permissions
       const permission = await this.requestLocationPermission();
       if (permission !== 'granted') {
-        throw new Error('Location permission denied');
+        return; // Don't throw error, just return gracefully
       }
 
       // Request background location permissions for mobile
@@ -89,9 +85,7 @@ class LocationService {
       await AsyncStorage.setItem('locationTrackingActive', 'true');
       
     } catch (error) {
-      console.error('Error starting location tracking:', error);
-      // Don't throw error to prevent app crash, just log it
-      // showToast.error('Failed to start location tracking. Please check your location permissions.');
+      // Silently handle any errors
     }
   }
 
@@ -118,8 +112,6 @@ class LocationService {
     
     // Remove tracking state
     AsyncStorage.removeItem('locationTrackingActive');
-    
-    console.log('Location tracking stopped');
   }
 
   /**
@@ -132,6 +124,20 @@ class LocationService {
         if ('permissions' in navigator) {
           const result = await navigator.permissions.query({ name: 'geolocation' });
           this.permissionStatus = result.state;
+          
+          // If permission is not granted, try to get current position to trigger permission request
+          if (result.state === 'prompt') {
+            try {
+              await this.getCurrentPosition();
+              // Re-query permission status after user interaction
+              const updatedResult = await navigator.permissions.query({ name: 'geolocation' });
+              this.permissionStatus = updatedResult.state;
+              return updatedResult.state;
+            } catch (positionError) {
+              return 'denied';
+            }
+          }
+          
           return result.state;
         }
         return 'granted';
@@ -142,7 +148,6 @@ class LocationService {
         return status;
       }
     } catch (error) {
-      console.error('Error requesting location permission:', error);
       return 'denied';
     }
   }
@@ -168,16 +173,6 @@ class LocationService {
         return status;
       }
     } catch (error) {
-      // Silently handle iOS permission errors
-      if (Platform.OS === 'ios' && error.message && error.message.includes('NSLocation*UsageDescription')) {
-        return 'denied';
-      }
-      
-      // Only log non-iOS errors
-      if (Platform.OS !== 'ios') {
-        console.error('Error requesting background location permission:', error);
-      }
-      
       return 'denied';
     }
   }
@@ -198,7 +193,6 @@ class LocationService {
         return status === 'granted';
       }
     } catch (error) {
-      console.error('Error checking location permission:', error);
       return false;
     }
   }
@@ -215,7 +209,6 @@ class LocationService {
         return status === 'granted';
       }
     } catch (error) {
-      console.error('Error checking background location permission:', error);
       return false;
     }
   }
@@ -243,7 +236,6 @@ class LocationService {
       const disabled = await AsyncStorage.getItem('userLocationTrackingDisabled');
       return disabled === 'true';
     } catch (error) {
-      console.error('Error checking user tracking preference:', error);
       return false;
     }
   }
@@ -263,7 +255,6 @@ class LocationService {
       
       return true;
     } catch (error) {
-      console.error('Error enabling user tracking:', error);
       return false;
     }
   }
@@ -281,7 +272,6 @@ class LocationService {
       
       return true;
     } catch (error) {
-      console.error('Error disabling user tracking:', error);
       return false;
     }
   }
@@ -297,7 +287,6 @@ class LocationService {
         disabled: disabled === 'true'
       };
     } catch (error) {
-      console.error('Error getting user tracking preference:', error);
       return { enabled: true, disabled: false };
     }
   }
@@ -307,16 +296,20 @@ class LocationService {
    */
   async initialize() {
     try {
+      // On web, request location permission on app load
+      if (Platform.OS === 'web') {
+        await this.requestLocationPermission();
+      }
+      
       // Check if tracking was previously active
       const wasActive = await AsyncStorage.getItem('locationTrackingActive');
       const userDisabled = await this.isUserTrackingDisabled();
       
       if (wasActive === 'true' && !userDisabled) {
-        console.log('Resuming previous location tracking session');
         await this.startLocationTracking();
       }
     } catch (error) {
-      console.error('Error initializing location service:', error);
+      // Silently handle initialization errors
     }
   }
 
@@ -328,7 +321,6 @@ class LocationService {
       const disabled = await AsyncStorage.getItem('userLocationTrackingDisabled');
       return disabled !== 'true';
     } catch (error) {
-      console.error('Error checking if should track on resume:', error);
       return false;
     }
   }
@@ -346,7 +338,7 @@ class LocationService {
         await this.sendLocationToBackend(position.coords.latitude, position.coords.longitude);
       }
     } catch (error) {
-      console.error('Error updating location:', error);
+      // Silently handle location update errors
     }
   }
 
@@ -357,9 +349,16 @@ class LocationService {
     return new Promise((resolve, reject) => {
       if (Platform.OS === 'web') {
         // Web implementation
+        if (!navigator.geolocation) {
+          reject(new Error('Geolocation is not supported by this browser'));
+          return;
+        }
+        
         navigator.geolocation.getCurrentPosition(
           resolve,
-          reject,
+          (error) => {
+            reject(error);
+          },
           {
             enableHighAccuracy: true,
             timeout: 10000,
@@ -412,10 +411,9 @@ class LocationService {
         async (location) => {
           // This callback runs in the background
           try {
-            console.log('Background location update:', location.coords);
             await this.sendLocationToBackend(location.coords.latitude, location.coords.longitude);
           } catch (error) {
-            console.error('Error in background location callback:', error);
+            // Silently handle background callback errors
           }
         }
       );
@@ -425,7 +423,7 @@ class LocationService {
 
       console.log('Background location tracking started');
     } catch (error) {
-      console.error('Error starting background location tracking:', error);
+      // Silently handle background tracking errors
     }
   }
 
@@ -489,17 +487,13 @@ class LocationService {
       if (response.ok) {
         // Location update sent successfully
       } else {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Failed to send location update:', response.status, errorData);
-        
         // If unauthorized, stop tracking
         if (response.status === 401) {
-          console.log('Unauthorized, stopping location tracking');
           this.stopLocationTracking();
         }
       }
     } catch (error) {
-      console.error('Error sending location update:', error);
+      // Silently handle location update errors
     }
   }
 
@@ -510,7 +504,6 @@ class LocationService {
     try {
       return await AsyncStorage.getItem('token');
     } catch (error) {
-      console.error('Error getting auth token:', error);
       return null;
     }
   }
@@ -536,11 +529,10 @@ class LocationService {
     try {
       const wasTracking = await AsyncStorage.getItem('locationTrackingActive');
       if (wasTracking === 'true') {
-        console.log('Resuming location tracking...');
         await this.startLocationTracking();
       }
     } catch (error) {
-      console.error('Error resuming location tracking:', error);
+      // Silently handle resume errors
     }
   }
 
@@ -559,8 +551,6 @@ class LocationService {
       this.locationUpdateInterval = setInterval(async () => {
         await this.updateLocation();
       }, this.updateInterval);
-      
-      console.log(`Location tracking interval updated to ${newInterval}ms`);
     } else {
       this.updateInterval = newInterval;
     }

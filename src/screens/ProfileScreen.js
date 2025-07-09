@@ -304,7 +304,7 @@ const ProfileScreen = ({ navigation }) => {
         const stats = await locationService.getTrackingStats();
         setLocationStats(stats);
       } catch (error) {
-        console.error('Error loading location stats:', error);
+        // Silently handle location stats errors
       }
     };
 
@@ -521,8 +521,7 @@ const ProfileScreen = ({ navigation }) => {
       const stats = await locationService.getTrackingStats();
       setLocationStats(stats);
     } catch (error) {
-      console.error('Error toggling location tracking:', error);
-      showToast.error('Failed to update location tracking settings');
+      // Silently handle location toggle errors
     } finally {
       setLocationToggleLoading(false);
     }
@@ -968,6 +967,11 @@ const ProfileScreen = ({ navigation }) => {
               <Card style={styles.profileCard}>
                 <Card.Content>
                   <Text style={styles.sectionTitle}>Location Tracking</Text>
+                  {locationStats?.platform === 'web' && (
+                    <Text style={[styles.infoValue, { marginBottom: 15, fontSize: 12, color: '#666' }]}>
+                      Location tracking helps provide location-based reminders. Please allow location access when prompted.
+                    </Text>
+                  )}
                   {locationStats ? (
                     <>
                       {/* User Toggle Control */}
@@ -990,6 +994,9 @@ const ProfileScreen = ({ navigation }) => {
                           { color: locationStats.isTracking ? '#28a745' : '#dc3545' }
                         ]}>
                           {locationStats.isTracking ? 'Active' : 'Inactive'}
+                          {locationStats.platform === 'web' && !locationStats.permissionStatus?.foreground && (
+                            ' (Permission needed)'
+                          )}
                         </Text>
                       </View>
                       
@@ -1015,7 +1022,8 @@ const ProfileScreen = ({ navigation }) => {
                         </View>
                       )}
                       
-                      {locationStats.lastLocation && 
+                      {/* Last Location and Update Interval are hidden on web */}
+                      {locationStats.platform !== 'web' && locationStats.lastLocation && 
                        locationStats.lastLocation.coords && 
                        typeof locationStats.lastLocation.coords.latitude === 'number' && 
                        typeof locationStats.lastLocation.coords.longitude === 'number' && (
@@ -1027,12 +1035,14 @@ const ProfileScreen = ({ navigation }) => {
                         </View>
                       )}
                       
-                      <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>Update Interval:</Text>
-                        <Text style={styles.infoValue}>
-                          {locationStats.updateInterval / 1000}s
-                        </Text>
-                      </View>
+                      {locationStats.platform !== 'web' && (
+                        <View style={styles.infoRow}>
+                          <Text style={styles.infoLabel}>Update Interval:</Text>
+                          <Text style={styles.infoValue}>
+                            {locationStats.updateInterval / 1000}s
+                          </Text>
+                        </View>
+                      )}
                       
                       {locationStats.platform !== 'web' && (
                         <View style={styles.infoRow}>
@@ -1047,7 +1057,9 @@ const ProfileScreen = ({ navigation }) => {
                       )}
                     </>
                   ) : (
-                    <Text style={styles.infoValue}>Loading location status...</Text>
+                    <Text style={styles.infoValue}>
+                      {locationStats?.platform === 'web' ? 'Checking location permissions...' : 'Loading location status...'}
+                    </Text>
                   )}
                 </Card.Content>
               </Card>
