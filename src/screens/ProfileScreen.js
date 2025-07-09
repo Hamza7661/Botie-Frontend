@@ -998,7 +998,7 @@ const ProfileScreen = ({ navigation }) => {
                           { color: locationStats.isTracking ? '#28a745' : '#dc3545' }
                         ]}>
                           {locationStats.isTracking ? 'Active' : 'Inactive'}
-                          {locationStats.platform === 'web' && !locationStats.permissionStatus?.foreground && (
+                          {locationStats.platform === 'web' && !locationStats.isTracking && !locationStats.permissionStatus?.foreground && (
                             ' (Permission needed)'
                           )}
                         </Text>

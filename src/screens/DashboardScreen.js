@@ -110,6 +110,7 @@ const DashboardScreen = ({ navigation }) => {
   const lastSearchQuery = useRef(searchQuery);
   const initialLoadDone = useRef(false);
   const [tabSwitching, setTabSwitching] = useState(false);
+  const [hasRequestedPermission, setHasRequestedPermission] = useState(false);
 
   const limit = 10;
 
@@ -159,14 +160,36 @@ const DashboardScreen = ({ navigation }) => {
   useEffect(() => {
     const requestLocationPermission = async () => {
       try {
-        await locationService.requestLocationPermission();
+        // For Safari iOS, try a more direct approach
+        if (Platform.OS === 'web') {
+          // Try to get current position directly to trigger permission dialog
+          await locationService.getCurrentPosition();
+        } else {
+          await locationService.requestLocationPermission();
+        }
+        setHasRequestedPermission(true);
       } catch (error) {
         // Silently handle permission request errors
       }
     };
     
-    requestLocationPermission();
+    // Add a small delay to ensure the page is fully loaded
+    const timer = setTimeout(requestLocationPermission, 1000);
+    
+    return () => clearTimeout(timer);
   }, []);
+
+  // Fallback: Request permission on first user interaction (for Safari iOS)
+  const handleFirstInteraction = async () => {
+    if (!hasRequestedPermission && Platform.OS === 'web') {
+      try {
+        await locationService.getCurrentPosition();
+        setHasRequestedPermission(true);
+      } catch (error) {
+        // Silently handle permission request errors
+      }
+    }
+  };
 
   // Initial data load
   useEffect(() => {
@@ -437,7 +460,7 @@ const DashboardScreen = ({ navigation }) => {
   }, [reset]);
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} onTouchStart={handleFirstInteraction}>
       <View style={styles.mainContainer}>
         <FlatList
           data={appointments}
