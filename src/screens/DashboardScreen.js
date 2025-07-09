@@ -226,16 +226,37 @@ const DashboardScreen = ({ navigation }) => {
       refresh(searchQuery);
     };
 
+    const handleReminderCreated = (data) => {
+      // Refresh the current page to show the new reminder
+      refresh(searchQuery);
+    };
+
+    const handleReminderUpdated = (data) => {
+      // Refresh the current page to show updated reminder
+      refresh(searchQuery);
+    };
+
+    const handleReminderDeleted = (data) => {
+      // Refresh the current page to remove deleted reminder
+      refresh(searchQuery);
+    };
+
     // Register WebSocket event listeners
     webSocketService.on('task-created', handleTaskCreated);
     webSocketService.on('task-updated', handleTaskUpdated);
     webSocketService.on('task-deleted', handleTaskDeleted);
+    webSocketService.on('reminder-created', handleReminderCreated);
+    webSocketService.on('reminder-updated', handleReminderUpdated);
+    webSocketService.on('reminder-deleted', handleReminderDeleted);
 
     // Cleanup event listeners
     return () => {
       webSocketService.off('task-created', handleTaskCreated);
       webSocketService.off('task-updated', handleTaskUpdated);
       webSocketService.off('task-deleted', handleTaskDeleted);
+      webSocketService.off('reminder-created', handleReminderCreated);
+      webSocketService.off('reminder-updated', handleReminderUpdated);
+      webSocketService.off('reminder-deleted', handleReminderDeleted);
     };
   }, [webSocketService, refresh, searchQuery]);
 

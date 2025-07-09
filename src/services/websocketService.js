@@ -87,6 +87,28 @@ class WebSocketService {
         this.emitEvent('customer-deleted', data);
       });
 
+      // Reminder events
+      this.socket.on('reminder-created', (data) => {
+        console.log('Reminder created:', data);
+        this.emitEvent('reminder-created', data);
+      });
+
+      this.socket.on('reminder-updated', (data) => {
+        console.log('Reminder updated:', data);
+        this.emitEvent('reminder-updated', data);
+      });
+
+      this.socket.on('reminder-deleted', (data) => {
+        console.log('Reminder deleted:', data);
+        this.emitEvent('reminder-deleted', data);
+      });
+
+      // Notification events (for reminder triggers)
+      this.socket.on('notification', (data) => {
+        console.log('Notification received:', data);
+        this.emitEvent('notification', data);
+      });
+
     } catch (error) {
       console.error('Error creating WebSocket connection:', error);
     }

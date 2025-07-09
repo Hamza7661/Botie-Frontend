@@ -74,6 +74,32 @@ export const WebSocketProvider = ({ children }) => {
       // Don't show toast for WebSocket updates - user already knows they deleted the customer
     };
 
+    const handleReminderCreated = (data) => {
+      // Don't show toast for WebSocket updates - user already knows they created the reminder
+    };
+
+    const handleReminderUpdated = (data) => {
+      // Don't show toast for WebSocket updates - user already knows they updated the reminder
+    };
+
+    const handleReminderDeleted = (data) => {
+      // Don't show toast for WebSocket updates - user already knows they deleted the reminder
+    };
+
+    const handleNotification = (data) => {
+      if (data.data?.type === 'reminder_triggered') {
+        console.log('Reminder triggered:', data.data.data);
+        
+        // Show prominent alert/popup to user
+        showToast.success(`⏰ Reminder: ${data.data.data.description}`);
+        
+        // You can add more notification logic here like:
+        // - Play notification sound
+        // - Show modal/popup
+        // - Update reminder status in UI
+      }
+    };
+
     // Register event listeners
     webSocketService.on('task-created', handleTaskCreated);
     webSocketService.on('task-updated', handleTaskUpdated);
@@ -81,6 +107,10 @@ export const WebSocketProvider = ({ children }) => {
     webSocketService.on('customer-created', handleCustomerCreated);
     webSocketService.on('customer-updated', handleCustomerUpdated);
     webSocketService.on('customer-deleted', handleCustomerDeleted);
+    webSocketService.on('reminder-created', handleReminderCreated);
+    webSocketService.on('reminder-updated', handleReminderUpdated);
+    webSocketService.on('reminder-deleted', handleReminderDeleted);
+    webSocketService.on('notification', handleNotification);
 
     // Cleanup event listeners
     return () => {
@@ -90,6 +120,10 @@ export const WebSocketProvider = ({ children }) => {
       webSocketService.off('customer-created', handleCustomerCreated);
       webSocketService.off('customer-updated', handleCustomerUpdated);
       webSocketService.off('customer-deleted', handleCustomerDeleted);
+      webSocketService.off('reminder-created', handleReminderCreated);
+      webSocketService.off('reminder-updated', handleReminderUpdated);
+      webSocketService.off('reminder-deleted', handleReminderDeleted);
+      webSocketService.off('notification', handleNotification);
     };
   }, [isAuthenticated]);
 
