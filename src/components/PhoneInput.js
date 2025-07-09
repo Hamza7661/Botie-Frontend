@@ -95,8 +95,8 @@ export default function PhoneInput({
           const detectedCountry = await detectUserCountry(countries, GOOGLE_PLACES_API_KEY);
           if (detectedCountry) {
             setSelectedCountry(detectedCountry);
-            // Notify parent of the country change
-            if (onChangeText) onChangeText(localValue, detectedCountry);
+            // Only notify parent of country change if we have a phone number value
+            if (onChangeText && value) onChangeText(value, detectedCountry);
           }
         } catch (error) {
           console.log('Error detecting country:', error);
