@@ -178,7 +178,8 @@ class LocationService {
       if (Platform.OS === 'web') {
         if ('permissions' in navigator) {
           const result = await navigator.permissions.query({ name: 'geolocation' });
-          return result.state === 'granted';
+          // On Safari iOS, "prompt" state means "Ask" which allows location access
+          return result.state === 'granted' || result.state === 'prompt';
         }
         
         // Fallback for browsers that don't support permissions API (like Safari iOS)
